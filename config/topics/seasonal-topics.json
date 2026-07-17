@@ -1,0 +1,75 @@
+{
+  "_comment": "월별 시즌성·시의성 주제 풀 (생활정보/꿀팁 니치, 한국 기준). topic-picker.mjs 가 현재 월/주차를 보고 여기서 주제를 뽑아 글을 생성한다. category 는 site.config.js 의 categories slug 와 매칭.",
+  "1": [
+    { "title": "연말정산 환급 많이 받는 법 총정리", "category": "money", "keywords": ["연말정산", "환급", "소득공제", "세액공제"] },
+    { "title": "설 명절 차례상 차리는 법과 비용 절약 팁", "category": "season", "keywords": ["설날", "차례상", "명절"] },
+    { "title": "새해 다이어트 식단표와 무료 운동 앱 추천", "category": "life", "keywords": ["다이어트", "식단", "운동앱"] },
+    { "title": "1월 자동차세 연납 신청하고 할인받는 법", "category": "money", "keywords": ["자동차세", "연납", "할인"] }
+  ],
+  "2": [
+    { "title": "설날 기차표·고속버스 예매 꿀팁과 귀성길 정보", "category": "howto", "keywords": ["설날", "기차표", "예매"] },
+    { "title": "졸업·입학 준비물 체크리스트와 알뜰 구매처", "category": "life", "keywords": ["입학준비물", "졸업", "절약"] },
+    { "title": "환절기 감기 예방과 면역력 높이는 생활습관", "category": "life", "keywords": ["환절기", "감기예방", "면역력"] },
+    { "title": "2월 놓치면 손해보는 정부지원금 신청 정보", "category": "support", "keywords": ["정부지원금", "신청", "보조금"] }
+  ],
+  "3": [
+    { "title": "새 학기 학용품·교복 지원금 신청 방법", "category": "support", "keywords": ["교육급여", "학용품", "교복지원"] },
+    { "title": "봄철 미세먼지·황사 대비 생활수칙과 마스크 고르는 법", "category": "life", "keywords": ["미세먼지", "황사", "마스크"] },
+    { "title": "벚꽃 명소와 봄나들이 무료 축제 일정 정리", "category": "season", "keywords": ["벚꽃", "축제", "봄나들이"] },
+    { "title": "전월세 계약 전 꼭 확인할 체크리스트", "category": "howto", "keywords": ["전세", "월세", "계약"] }
+  ],
+  "4": [
+    { "title": "근로·자녀장려금 신청 자격과 신청 방법", "category": "support", "keywords": ["근로장려금", "자녀장려금", "신청"] },
+    { "title": "봄철 알레르기 비염 완화하는 생활 꿀팁", "category": "life", "keywords": ["알레르기", "비염", "봄"] },
+    { "title": "자동차세 분납·환급과 절약 방법 총정리", "category": "money", "keywords": ["자동차세", "분납", "환급"] },
+    { "title": "봄맞이 대청소 순서와 묵은 때 제거 노하우", "category": "life", "keywords": ["대청소", "청소", "정리수납"] }
+  ],
+  "5": [
+    { "title": "종합소득세 신고 대상과 환급 받는 법", "category": "money", "keywords": ["종합소득세", "신고", "환급"] },
+    { "title": "어버이날·어린이날 가성비 선물과 무료 행사 정보", "category": "season", "keywords": ["어버이날", "어린이날", "가정의달"] },
+    { "title": "가정의 달 가족 나들이 무료·할인 명소 모음", "category": "season", "keywords": ["가정의달", "나들이", "할인"] },
+    { "title": "5월 놓치기 쉬운 각종 환급금 조회·신청 방법", "category": "money", "keywords": ["환급금", "미환급금", "조회"] }
+  ],
+  "6": [
+    { "title": "장마철 습기·곰팡이 제거와 제습 꿀팁", "category": "life", "keywords": ["장마", "곰팡이", "제습"] },
+    { "title": "여름철 전기요금 폭탄 피하는 에어컨 절약법", "category": "money", "keywords": ["전기요금", "에어컨", "절약"] },
+    { "title": "모기 퇴치 방법과 물렸을 때 가려움 멈추는 법", "category": "life", "keywords": ["모기", "퇴치", "가려움"] },
+    { "title": "여름 휴가 알뜰하게 가는 예약·할인 정보", "category": "howto", "keywords": ["여름휴가", "예약", "할인"] }
+  ],
+  "7": [
+    { "title": "재산세 납부 기간과 절약·카드 혜택 정리", "category": "money", "keywords": ["재산세", "납부", "카드혜택"] },
+    { "title": "폭염 대비 온열질환 예방 생활수칙", "category": "life", "keywords": ["폭염", "온열질환", "예방"] },
+    { "title": "여름 물놀이 안전수칙과 무료 물놀이장 정보", "category": "season", "keywords": ["물놀이", "안전", "여름"] },
+    { "title": "에너지 캐시백·바우처 신청으로 전기요금 돌려받기", "category": "support", "keywords": ["에너지캐시백", "에너지바우처", "신청"] }
+  ],
+  "8": [
+    { "title": "광복절 연휴 알뜰 여행과 무료 전시 정보", "category": "season", "keywords": ["광복절", "연휴", "여행"] },
+    { "title": "말복 보양식과 집에서 만드는 삼계탕 레시피", "category": "life", "keywords": ["말복", "보양식", "삼계탕"] },
+    { "title": "여름 전기요금 누진제 구간과 절약 총정리", "category": "money", "keywords": ["누진제", "전기요금", "절약"] },
+    { "title": "2학기 개학 준비와 자녀 교육비 지원 정보", "category": "support", "keywords": ["개학", "교육비", "지원"] }
+  ],
+  "9": [
+    { "title": "추석 차례상 비용과 차례 간소화 방법", "category": "season", "keywords": ["추석", "차례상", "명절"] },
+    { "title": "추석 기차표·고속도로 통행료 면제 정보", "category": "howto", "keywords": ["추석", "기차표예매", "통행료"] },
+    { "title": "독감 예방접종 무료 대상과 접종 시기", "category": "life", "keywords": ["독감", "예방접종", "무료"] },
+    { "title": "환절기 건강관리와 면역력 높이는 음식", "category": "life", "keywords": ["환절기", "건강", "면역력"] }
+  ],
+  "10": [
+    { "title": "단풍 명소와 가을 무료 축제 일정 모음", "category": "season", "keywords": ["단풍", "축제", "가을여행"] },
+    { "title": "김장 준비 배추·재료 저렴하게 사는 시기", "category": "life", "keywords": ["김장", "배추", "절약"] },
+    { "title": "독감 예방접종과 환절기 감기 예방 수칙", "category": "life", "keywords": ["독감", "예방접종", "환절기"] },
+    { "title": "겨울철 난방비 미리 줄이는 보일러 점검법", "category": "money", "keywords": ["난방비", "보일러", "절약"] }
+  ],
+  "11": [
+    { "title": "김장 양념 황금비율과 보관 꿀팁", "category": "life", "keywords": ["김장", "양념", "보관"] },
+    { "title": "겨울철 난방비 절약하는 실내 보온 방법", "category": "money", "keywords": ["난방비", "보온", "절약"] },
+    { "title": "블랙프라이데이·연말 쇼핑 알뜰하게 하는 법", "category": "howto", "keywords": ["블랙프라이데이", "쇼핑", "할인"] },
+    { "title": "연말정산 미리보기로 환급 늘리는 전략", "category": "money", "keywords": ["연말정산", "미리보기", "환급"] }
+  ],
+  "12": [
+    { "title": "연말정산 소득·세액공제 항목 총정리", "category": "money", "keywords": ["연말정산", "소득공제", "세액공제"] },
+    { "title": "겨울철 난방비 지원금·에너지바우처 신청 방법", "category": "support", "keywords": ["난방비지원", "에너지바우처", "신청"] },
+    { "title": "크리스마스 가성비 선물과 무료 행사 정보", "category": "season", "keywords": ["크리스마스", "선물", "행사"] },
+    { "title": "새해 준비 체크리스트와 새해 다짐 실천법", "category": "season", "keywords": ["새해", "다짐", "준비"] }
+  ]
+}

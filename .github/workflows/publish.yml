@@ -1,0 +1,141 @@
+name: 자동 발행 (생성 → 빌드 → 배포 → 블로거)
+
+# 100% 자동 발행 파이프라인.
+# - 매일 정해진 시각(KST 08:00 = UTC 23:00)에 시즌성 글 생성 후 배포
+# - 수동 실행(workflow_dispatch)도 지원
+# - 코드 푸시 시에도 빌드/배포(글 생성 없이)
+#
+# ⚠️ 사전 설정
+#  1) 저장소 Settings > Pages > Source 를 "GitHub Actions" 로 설정
+#  2) Settings > Secrets and variables > Actions 에 다음 시크릿 등록
+#     - ANTHROPIC_API_KEY        (필수: 글 생성)
+#     - ADSENSE_CLIENT 등 광고 ID (선택: variables 로 등록 권장)
+#     - BLOGGER_BLOG_ID, BLOGGER_CLIENT_ID/SECRET/REFRESH_TOKEN (선택: 블로거 발행)
+#  3) cron 스케줄은 기본 브랜치에 있을 때만 동작함
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 매일 09:00 KST (00:00 UTC)
+    - cron: "0 6 * * *" # 매일 15:00 KST (06:00 UTC)
+    - cron: "0 12 * * *" # 매일 21:00 KST (12:00 UTC)
+  workflow_dispatch:
+    inputs:
+      posts:
+        description: "이번 실행에서 생성할 글 수"
+        default: "1"
+      generate:
+        description: "글 생성 여부 (false 면 빌드/배포만)"
+        default: "true"
+      publish_blogger:
+        description: "구글 블로거 발행 여부"
+        default: "false"
+      publish_wordpress:
+        description: "워드프레스 발행 여부"
+        default: "false"
+  push:
+    branches: ["**"]
+    paths:
+      - "automation/**"
+      - "config/**"
+      - "src/**"
+      - "content/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: write # 생성된 글을 저장소에 커밋
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-publish"
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci || npm install
+
+      # 포스팅 이미지(대표+소제목 카드) 생성을 위한 Chrome (실패해도 발행 계속)
+      - name: 이미지용 Chrome 설치 (선택)
+        id: setupchrome
+        continue-on-error: true
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+      - name: 한글 폰트 + CHROME_BIN (선택)
+        if: steps.setupchrome.outcome == 'success'
+        continue-on-error: true
+        run: |
+          npm install --no-save pretendard
+          echo "CHROME_BIN=${{ steps.setupchrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
+
+      - name: 콘텐츠 생성 + 빌드 + (옵션) 블로거 발행
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CONTENT_MODEL: ${{ vars.CONTENT_MODEL }}
+          # 사이트/광고/분석 (Repository variables 권장)
+          SITE_PROFILE: ${{ vars.SITE_PROFILE }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          SITE_BASE_PATH: ${{ vars.SITE_BASE_PATH }}
+          SITE_CNAME: ${{ vars.SITE_CNAME }}
+          ADSENSE_CLIENT: ${{ vars.ADSENSE_CLIENT }}
+          ADSENSE_SLOT_TOP: ${{ vars.ADSENSE_SLOT_TOP }}
+          ADSENSE_SLOT_INARTICLE: ${{ vars.ADSENSE_SLOT_INARTICLE }}
+          ADSENSE_SLOT_BOTTOM: ${{ vars.ADSENSE_SLOT_BOTTOM }}
+          TABOOLA_PUBLISHER: ${{ vars.TABOOLA_PUBLISHER }}
+          NAVER_AD_SCRIPT: ${{ vars.NAVER_AD_SCRIPT }}
+          COUPANG_PARTNER_ID: ${{ vars.COUPANG_PARTNER_ID }}
+          NAVER_CONNECT_ID: ${{ vars.NAVER_CONNECT_ID }}
+          GA4_ID: ${{ vars.GA4_ID }}
+          GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
+          NAVER_SITE_VERIFICATION: ${{ vars.NAVER_SITE_VERIFICATION }}
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+          # 채널
+          POSTS_PER_RUN: ${{ github.event.inputs.posts || vars.POSTS_PER_RUN || '1' }}
+          GENERATE: ${{ github.event_name == 'push' && 'false' || (github.event.inputs.generate || 'true') }}
+          PUBLISH_BLOGGER: ${{ github.event.inputs.publish_blogger || vars.PUBLISH_BLOGGER || 'false' }}
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          PUBLISH_WORDPRESS: ${{ github.event.inputs.publish_wordpress || vars.PUBLISH_WORDPRESS || 'false' }}
+          WPCOM_SITE: ${{ vars.WPCOM_SITE }}
+          WPCOM_TOKEN: ${{ secrets.WPCOM_TOKEN }}
+          WORDPRESS_URL: ${{ vars.WORDPRESS_URL }}
+          WORDPRESS_USER: ${{ vars.WORDPRESS_USER }}
+          WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
+          WORDPRESS_STATUS: ${{ vars.WORDPRESS_STATUS }}
+        run: node automation/run-all.mjs
+
+      - name: 생성된 글 저장소에 커밋
+        if: env.GENERATE != 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/posts src/assets/covers config/requests.json config/topics || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: 자동 발행 글 추가 ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push
+          else
+            echo "커밋할 신규 글 없음"
+          fi
+
+      # 사전에 Settings > Pages > Source = "GitHub Actions" 로 활성화돼 있어야 함
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4

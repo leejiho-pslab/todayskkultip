@@ -1,0 +1,65 @@
+{
+  "1": [
+    { "title": "연말정산 환급금 조회 방법과 지급일 총정리", "category": "tax", "keywords": ["연말정산 환급금", "환급금 조회", "지급일"] },
+    { "title": "새해 재테크 계획 세우는 법 — 통장 쪼개기부터 시작", "category": "invest", "keywords": ["통장 쪼개기", "새해 재테크", "돈 모으기"] },
+    { "title": "1월 청년도약계좌 신청 조건과 정부기여금 계산", "category": "benefit", "keywords": ["청년도약계좌", "신청 조건", "정부기여금"] }
+  ],
+  "2": [
+    { "title": "연말정산 추가 환급 받는 경정청구 방법", "category": "tax", "keywords": ["경정청구", "연말정산 추가환급"] },
+    { "title": "겨울 난방비 절약 — 가스요금 캐시백 신청 방법", "category": "save", "keywords": ["가스요금 캐시백", "난방비 절약"] },
+    { "title": "파킹통장 금리 비교와 갈아타기 기준", "category": "invest", "keywords": ["파킹통장", "금리 비교", "CMA"] }
+  ],
+  "3": [
+    { "title": "숨은 보험금 찾기 — 내보험찾아줌 조회 방법", "category": "benefit", "keywords": ["숨은 보험금", "내보험찾아줌"] },
+    { "title": "신학기 교육비 공제와 학자금 지원 제도 정리", "category": "tax", "keywords": ["교육비 공제", "학자금 지원"] },
+    { "title": "통신비 줄이는 알뜰폰 요금제 갈아타기 가이드", "category": "save", "keywords": ["알뜰폰 요금제", "통신비 절약"] }
+  ],
+  "4": [
+    { "title": "종합소득세 신고 대상과 절세 포인트 미리 준비하기", "category": "tax", "keywords": ["종합소득세", "절세", "신고 대상"] },
+    { "title": "ISA 계좌 개설 전 알아야 할 장단점과 만기 전략", "category": "invest", "keywords": ["ISA 계좌", "비과세", "만기 전략"] },
+    { "title": "숨은 정부지원금 한 번에 조회 — 보조금24 사용법", "category": "benefit", "keywords": ["보조금24", "정부지원금 조회"] }
+  ],
+  "5": [
+    { "title": "5월 종합소득세 신고 방법 — 홈택스 셀프 신고 따라하기", "category": "tax", "keywords": ["종합소득세 신고", "홈택스"] },
+    { "title": "가정의 달 지출 관리 — 카드 무이자 할부 활용법", "category": "card", "keywords": ["무이자 할부", "5월 지출"] },
+    { "title": "근로장려금 신청 자격과 지급액 계산 방법", "category": "benefit", "keywords": ["근로장려금", "신청 자격", "지급액"] }
+  ],
+  "6": [
+    { "title": "상반기 결산 — 내 소비 패턴 분석하고 고정비 줄이기", "category": "save", "keywords": ["고정비 절약", "소비 패턴"] },
+    { "title": "여름 휴가비 마련 — 단기 적금과 파킹통장 활용", "category": "invest", "keywords": ["단기 적금", "휴가비"] },
+    { "title": "자동차세 연납 신청과 할인율 총정리", "category": "tax", "keywords": ["자동차세 연납", "할인"] }
+  ],
+  "7": [
+    { "title": "7월 재산세 1기분 카드 무이자 납부 방법과 캐시백 비교", "category": "tax", "keywords": ["재산세 카드 납부", "무이자", "7월 재산세"] },
+    { "title": "여름철 전기요금 폭탄 막는 에너지 캐시백 신청법", "category": "save", "keywords": ["에너지 캐시백", "전기요금 절약"] },
+    { "title": "청년 월세 지원금 신청 조건과 방법 총정리", "category": "benefit", "keywords": ["청년 월세 지원", "신청 방법"] },
+    { "title": "휴가철 여행 특화 카드 혜택 비교 — 공항라운지·해외수수료", "category": "card", "keywords": ["여행 카드", "해외 수수료", "공항라운지"] },
+    { "title": "예적금 금리 비교 사이트 활용법 — 금융상품 한눈에", "category": "invest", "keywords": ["예금 금리 비교", "금융상품 한눈에"] }
+  ],
+  "8": [
+    { "title": "주민세 납부 기간과 카드 납부 혜택 정리", "category": "tax", "keywords": ["주민세", "납부 기간"] },
+    { "title": "전세보증금 반환보증 가입 방법과 보증료 지원", "category": "benefit", "keywords": ["전세보증금 반환보증", "보증료 지원"] },
+    { "title": "월급 통장 이자 더 받는 급여통장 우대 혜택 비교", "category": "invest", "keywords": ["급여통장", "우대 금리"] },
+    { "title": "구독 서비스 다이어트 — 안 쓰는 정기결제 찾아 해지하기", "category": "save", "keywords": ["정기결제 해지", "구독 절약"] }
+  ],
+  "9": [
+    { "title": "9월 재산세 2기분 납부 — 카드 무이자와 포인트 납부 팁", "category": "tax", "keywords": ["재산세 2기분", "카드 무이자"] },
+    { "title": "추석 상여금 굴리기 — 단기 고금리 상품 비교", "category": "invest", "keywords": ["추석 상여금", "단기 예금"] },
+    { "title": "명절 선물 카드 할인·페이 적립 혜택 총정리", "category": "card", "keywords": ["명절 카드 할인", "페이 적립"] }
+  ],
+  "10": [
+    { "title": "연말정산 미리보기 — 홈택스로 예상 환급액 확인", "category": "tax", "keywords": ["연말정산 미리보기", "예상 환급액"] },
+    { "title": "청약통장 25만원 시대 — 납입액 조정 전략", "category": "invest", "keywords": ["청약통장", "납입액"] },
+    { "title": "겨울 준비 난방비 지원 제도 — 에너지바우처 신청", "category": "benefit", "keywords": ["에너지바우처", "난방비 지원"] }
+  ],
+  "11": [
+    { "title": "연말정산 카드 사용 황금비율 — 신용·체크 소득공제 전략", "category": "card", "keywords": ["연말정산 카드 공제", "황금비율"] },
+    { "title": "IRP·연금저축 세액공제 한도 채우기 — 12월 전 체크", "category": "tax", "keywords": ["IRP 세액공제", "연금저축"] },
+    { "title": "블랙프라이데이 해외직구 — 관세 기준과 카드 혜택", "category": "save", "keywords": ["해외직구 관세", "블랙프라이데이"] }
+  ],
+  "12": [
+    { "title": "12월 연말정산 막판 절세 체크리스트", "category": "tax", "keywords": ["연말정산 절세", "체크리스트"] },
+    { "title": "내년 바뀌는 금융제도·지원금 미리보기", "category": "benefit", "keywords": ["바뀌는 제도", "지원금"] },
+    { "title": "연말 보너스 재테크 — 목돈 굴리는 3가지 방법", "category": "invest", "keywords": ["보너스 재테크", "목돈 굴리기"] }
+  ]
+}

@@ -1,0 +1,780 @@
+// =============================================================
+//  모니터링 대시보드 생성
+//  - 발행 현황(채널별/카테고리별/월별) + GEO/SEO 체크리스트 진척도
+//  - 자동 항목은 audit.mjs 실시간 검사 결과, 수동 항목은 체크리스트 status
+//  - 결과: public/dashboard/index.html (noindex) + dashboard/data.json
+//  ※ build.mjs 마지막 단계에서 호출(=public/ 완성 후)
+// =============================================================
+import fs from "node:fs";
+import path from "node:path";
+import { site } from "../config/site.config.js";
+import { PUBLIC_DIR, ROOT, ensureDir, loadPosts, readJson, todayKST, nowKST } from "./lib.mjs";
+import { runAudit } from "./audit.mjs";
+import { pickTopics } from "./topic-picker.mjs";
+import { listTopicsForDashboard, editorialNotes } from "./requests.mjs";
+
+function esc(s = "") {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function catName(slug) {
+  const c = site.categories.find((x) => x.slug === slug);
+  return c ? c.name : slug;
+}
+
+// ---- 데이터 집계 ----
+function collect() {
+  const posts = loadPosts();
+  const audit = runAudit();
+  const checklist = readJson(path.join(ROOT, "config", "geo-checklist.json"));
+
+  // 체크리스트 병합 + 진척도
+  let total = 0, done = 0, autoPass = 0, autoTotal = 0, manualDone = 0, manualTotal = 0;
+  const categories = checklist.categories.map((cat) => {
+    const items = cat.items.map((it) => {
+      let status, detail;
+      if (it.type === "auto") {
+        const a = audit[it.check];
+        status = a ? (a.pass ? "done" : "todo") : "todo";
+        detail = a ? a.detail : "검사 항목 미구현";
+        autoTotal++;
+        if (a && a.pass) autoPass++;
+      } else {
+        status = it.status || "todo"; // todo/done/na
+        detail = it.howto || it.note || "";
+        if (status !== "na") { manualTotal++; if (status === "done") manualDone++; }
+      }
+      if (status !== "na") { total++; if (status === "done") done++; }
+      return { item: it.item, note: it.note, type: it.type, status, detail };
+    });
+    const catTotal = items.filter((i) => i.status !== "na").length;
+    const catDone = items.filter((i) => i.status === "done").length;
+    return { name: cat.name, items, catTotal, catDone };
+  });
+
+  // 발행 현황
+  const byCat = {};
+  const byMonth = {};
+  let bloggerPublished = 0;
+  for (const p of posts) {
+    byCat[p.category] = (byCat[p.category] || 0) + 1;
+    const ym = (p.date || "").slice(0, 7);
+    byMonth[ym] = (byMonth[ym] || 0) + 1;
+    if (p.published?.blogger) bloggerPublished++;
+  }
+
+  // 내 의견·요청 + 발행 예정(플랜)
+  const myNotes = editorialNotes();
+  const myTopics = listTopicsForDashboard();
+  const userPending = myTopics
+    .filter((t) => t.status === "pending")
+    .map((t) => ({ title: t.title, category: t.category, source: "운영자 요청", note: t.note }));
+  // 시즌성 미리보기(아직 발행 안 된 주제 순서)
+  const seasonalPreview = pickTopics(8).map((t) => ({
+    title: t.title, category: t.category, keywords: t.keywords || [], source: "시즌 자동",
+  }));
+  const perRun = site.publishing.postsPerRun || 1;
+  // 발행 예정: 운영자 요청 먼저, 그다음 시즌
+  // 발행 스케줄: 매일 runsPerDay회 cron, 1회 perRun편 → 예정일 산정
+  const runsPerDay = site.publishing.runsPerDay || 1;
+  const postsPerDay = perRun * runsPerDay;
+  const times = site.publishing.publishTimes || [];
+  const base = nowKST();
+  const plan = [...userPending, ...seasonalPreview].slice(0, 12).map((t, i) => {
+    const dayOffset = Math.floor(i / postsPerDay); // 0 = 오늘 남은 회차 기준
+    const slotInDay = i % postsPerDay;
+    const dt = new Date(base.getTime() + (dayOffset + 1) * 86400000);
+    const time = times[slotInDay % (times.length || 1)] || "";
+    return {
+      ...t,
+      when: i < perRun ? "다음 발행" : "예정",
+      date: dt.toISOString().slice(0, 10) + (time ? ` ${time}` : ""),
+      keywords: t.keywords || [],
+    };
+  });
+
+  const gh = site.github || {};
+  const editUrl = `https://github.com/${gh.repo}/edit/${gh.branch}/config/requests.json`;
+  const setupUrl = `https://github.com/${gh.repo}/blob/${gh.branch}/docs/SETUP.md`;
+
+  // ---- 채널별 데이터 ----
+  const env = process.env;
+  const hasVal = (v) => !!(v && !String(v).includes("XXXX"));
+  const mapPost = (p) => ({
+    title: p.title, date: p.date, category: p.category, path: p.path,
+    slug: p.slug, blogger: !!p.published?.blogger,
+  });
+  const sitePosts = posts.filter((p) => p.channels?.site !== false);
+  const bloggerPosts = posts.filter((p) => p.channels?.blogger);
+  const bloggerPub = bloggerPosts.filter((p) => p.published?.blogger).length;
+  const wpPosts = posts.filter((p) => p.channels?.wordpress);
+  const wpPub = wpPosts.filter((p) => p.published?.wordpress).length;
+  // 워드프레스: wpcom(무료) 모드 우선, 아니면 자체 호스팅 3종
+  const wpcomMode = !!(env.WPCOM_SITE && env.WPCOM_TOKEN);
+  const wpSecrets = wpcomMode
+    ? [
+        { k: "WPCOM_SITE (WordPress.com 무료)", ok: !!env.WPCOM_SITE },
+        { k: "WPCOM_TOKEN", ok: !!env.WPCOM_TOKEN },
+      ]
+    : [
+        { k: "WPCOM_SITE + WPCOM_TOKEN (무료 플랜)", ok: false },
+        { k: "또는 WORDPRESS_URL/USER/APP_PASSWORD (자체 호스팅)", ok: !!(env.WORDPRESS_URL && env.WORDPRESS_USER && env.WORDPRESS_APP_PASSWORD) },
+      ];
+  // 채널이 config 에서 꺼져 있으면(계정 정지 등) 자격증명이 있어도 '보류'로 표시
+  const wpConfigured =
+    site.channels.wordpress.enabled &&
+    (wpcomMode || !!(env.WORDPRESS_URL && env.WORDPRESS_USER && env.WORDPRESS_APP_PASSWORD));
+  const bloggerSecrets = [
+    { k: "BLOGGER_BLOG_ID", ok: !!env.BLOGGER_BLOG_ID },
+    { k: "BLOGGER_CLIENT_ID", ok: !!env.BLOGGER_CLIENT_ID },
+    { k: "BLOGGER_CLIENT_SECRET", ok: !!env.BLOGGER_CLIENT_SECRET },
+    { k: "BLOGGER_REFRESH_TOKEN", ok: !!env.BLOGGER_REFRESH_TOKEN },
+  ];
+  const bloggerConfigured = bloggerSecrets.every((s) => s.ok);
+  const siteSettings = [
+    { k: "배포 (GitHub Pages)", ok: true, v: site.url },
+    { k: "Google AdSense", ok: hasVal(site.ads.adsense.client), v: hasVal(site.ads.adsense.client) ? site.ads.adsense.client : "미설정" },
+    { k: "Taboola", ok: !!site.ads.taboola.publisher, v: site.ads.taboola.publisher || "미설정" },
+    { k: "Google Analytics 4", ok: !!site.analytics.ga4, v: site.analytics.ga4 || "미설정" },
+    { k: "Search Console 인증", ok: !!site.analytics.googleSiteVerification, v: site.analytics.googleSiteVerification ? "설정됨" : "미설정" },
+    { k: "IndexNow", ok: !!site.indexNowKey, v: site.indexNowKey ? "활성화" : "미설정" },
+  ];
+  const aff = site.affiliate || {};
+  const coupangReady = !!(aff.coupang && aff.coupang.enabled);
+  const naverConnectReady = !!(aff.naverConnect && aff.naverConnect.enabled);
+  const channels = {
+    site: {
+      label: "자체 사이트", icon: "🌐", enabled: true, count: sitePosts.length,
+      url: site.url, settings: siteSettings, posts: sitePosts.map(mapPost),
+    },
+    blogger: {
+      label: "구글 블로거", icon: "📝", enabled: site.channels.blogger.enabled,
+      configured: bloggerConfigured, published: bloggerPub,
+      pending: bloggerPosts.length - bloggerPub, secrets: bloggerSecrets,
+      posts: bloggerPosts.map(mapPost), setupUrl,
+    },
+    naver: {
+      label: "네이버 블로그", icon: "🟢",
+      enabled: !!(site.channels.naver && site.channels.naver.enabled), count: 0,
+    },
+    wordpress: {
+      label: "워드프레스", icon: "🔵", enabled: site.channels.wordpress.enabled,
+      configured: wpConfigured, published: wpPub, pending: wpPosts.length - wpPub,
+      secrets: wpSecrets, posts: wpPosts.map(mapPost), setupUrl,
+    },
+  };
+  const activeChannels = [channels.site.enabled, channels.blogger.enabled, channels.naver.enabled, channels.wordpress.enabled].filter(Boolean).length;
+
+  // ---- 구축·연동 현황 (한눈에 보기) ----
+  const a = site.analytics;
+  const setup = {
+    search: [
+      { k: "GitHub Pages 배포", ok: true, v: "운영중" },
+      { k: "GA4 분석", ok: hasVal(a.ga4), v: hasVal(a.ga4) ? a.ga4 : "미설정" },
+      { k: "Search Console 소유확인", ok: !!a.googleSiteVerification, v: a.googleSiteVerification ? "완료" : "미설정" },
+      { k: "Bing 소유확인", ok: !!a.bingVerification, v: a.bingVerification ? "완료" : "미설정" },
+      { k: "IndexNow 즉시색인", ok: !!site.indexNowKey, v: site.indexNowKey ? "활성화" : "미설정" },
+      { k: "사이트맵·robots·llms.txt", ok: true, v: "생성됨" },
+    ],
+    channels: [
+      { k: "네이버 블로그 (1순위)", ok: false, v: "수동(다운로드 제공)" },
+      { k: "구글 블로거 (2순위)", ok: bloggerConfigured, v: bloggerConfigured ? `연동됨 · ${bloggerPub}편` : "연동 대기" },
+      { k: "워드프레스 (3순위)", ok: wpConfigured, v: wpConfigured ? `연동됨 · ${wpPub}편` : (site.channels.wordpress.enabled ? "연동 대기" : "보류 — WP.com 무료 계정 정지(자동화 스팸 분류)") },
+      { k: "자체 사이트 (기준)", ok: true, v: `운영중 · ${sitePosts.length}편` },
+    ],
+    money: [
+      { k: "Google AdSense", ok: hasVal(site.ads.adsense.client), v: hasVal(site.ads.adsense.client) ? "설정됨" : "승인·설정 대기" },
+      { k: "ads.txt", ok: hasVal(site.ads.adsense.client), v: hasVal(site.ads.adsense.client) ? "생성됨" : "AdSense 설정 시 생성" },
+      { k: "Taboola", ok: !!site.ads.taboola.publisher, v: site.ads.taboola.publisher ? "설정됨" : "미설정" },
+      { k: "네이버 쇼핑커넥트", ok: naverConnectReady, v: naverConnectReady ? "연동됨" : "가입·설정 대기 (심사 없음, 즉시)" },
+      { k: "쿠팡 파트너스", ok: coupangReady, v: coupangReady ? "연동됨" : "가입·설정 대기 (즉시 링크 발급)" },
+      { k: "네이버 애드포스트", ok: false, v: "네이버 블로그 90일+ 운영 후 신청" },
+    ],
+    features: [
+      { k: "사이트 내 검색", ok: true, v: "/search/" },
+      { k: "카테고리·태그·페이지네이션", ok: true, v: "적용" },
+      { k: "구조화 데이터(스키마)·RSS", ok: true, v: "적용" },
+      { k: "커스텀 도메인", ok: !!env.SITE_CNAME, v: env.SITE_CNAME || "미연결(github.io 사용중)" },
+    ],
+  };
+  const setupDone = Object.values(setup).flat().filter((s) => s.ok).length;
+  const setupTotal = Object.values(setup).flat().length;
+
+  // ---- 애드센스 승인 준비도 ----
+  const TARGET_POSTS = 20;
+  const everyCatHasPost = site.categories.every((c) => posts.some((p) => p.category === c.slug));
+  const enoughLen = posts.length > 0 && posts.every((p) => (p.body || "").length >= 1200);
+  const allHaveImg = posts.length > 0 && posts.every((p) => !!p.image);
+  const adsense = [
+    { k: "필수 페이지(소개·문의·개인정보·이용약관)", ok: true, v: "완비" },
+    { k: `콘텐츠 ${TARGET_POSTS}편 이상`, ok: posts.length >= TARGET_POSTS, v: `${posts.length}/${TARGET_POSTS}편` },
+    { k: "모든 카테고리 글 보유", ok: everyCatHasPost, v: everyCatHasPost ? "충족" : "빈 카테고리 있음" },
+    { k: "글당 충분한 분량(1500자 내외)", ok: enoughLen, v: enoughLen ? "충족" : "일부 짧음" },
+    { k: "글당 고유 이미지", ok: allHaveImg, v: allHaveImg ? "충족" : "일부 없음" },
+    { k: "개인정보·쿠키(광고) 고지", ok: true, v: "완비" },
+    { k: "AdSense 코드 삽입", ok: hasVal(site.ads.adsense.client), v: hasVal(site.ads.adsense.client) ? "삽입됨" : "ADSENSE_CLIENT 설정 시" },
+    { k: "ads.txt", ok: hasVal(site.ads.adsense.client), v: hasVal(site.ads.adsense.client) ? "생성됨" : "AdSense 설정 시" },
+    { k: "커스텀 도메인(필수)", ok: !!env.SITE_CNAME, v: env.SITE_CNAME || "필수 — github.io 주소로는 사이트 등록 불가" },
+  ];
+  const adsenseDone = adsense.filter((s) => s.ok).length;
+
+  // ---- 제휴/기타 수익화 준비도 ----
+  // 쿠팡파트너스: 가입 즉시 링크 발급 → 현재 구조에서 가장 빠른 수익원.
+  // 네이버 애드포스트: 네이버 블로그(채널) 광고 수익 — 사이트 코드가 아니라
+  //   블로그 운영 실적(90일+, 원본 글 50개+)으로 심사되므로 수동 항목으로만 추적.
+  const affiliate = {
+    naverConnect: [
+      { k: "브랜드커넥트 스페이스 개설 + 쇼핑커넥트 약관 동의", ok: naverConnectReady, v: naverConnectReady ? "완료" : "심사 없음 — 네이버 계정으로 즉시 가입" },
+      { k: "활동 채널 등록(네이버 블로그 등)", ok: naverConnectReady, v: naverConnectReady ? "완료" : "블로그·인스타·유튜브·개인 사이트 모두 가능" },
+      { k: "식별자 등록", ok: !!aff.naverConnect?.partnerId, v: aff.naverConnect?.partnerId || "NAVER_CONNECT_ID 설정 시" },
+      { k: "글 내 고지 문구 자동 노출", ok: true, v: "affiliate:[naverConnect] 글에 자동 삽입" },
+    ],
+    coupang: [
+      { k: "쿠팡 파트너스 가입", ok: coupangReady, v: coupangReady ? "완료" : "partners.coupang.com — 가입 즉시 링크 발급" },
+      { k: "채널(트래킹) ID 등록", ok: !!aff.coupang?.partnerId, v: aff.coupang?.partnerId || "COUPANG_PARTNER_ID 설정 시" },
+      { k: "글 내 고지 문구 자동 노출", ok: true, v: "affiliate:[coupang] 글에 자동 삽입" },
+    ],
+    adpost: [
+      { k: "네이버 블로그 개설(90일 요건 시계 시작)", ok: false, v: "개설일 기준 90일 이상 운영 필요" },
+      { k: "원본 글 50개 이상 축적", ok: false, v: "복사·붙여넣기 글은 심사 탈락 사유 — 변형 발행 필수" },
+      { k: "애드포스트 신청", ok: false, v: "adpost.naver.com (요건 충족 후)" },
+    ],
+  };
+  const affiliateDone = [...affiliate.naverConnect, ...affiliate.coupang].filter((s) => s.ok).length;
+  const affiliateTotal = affiliate.naverConnect.length + affiliate.coupang.length;
+
+  return {
+    generatedAt: todayKST(),
+    editUrl,
+    setupUrl,
+    channels,
+    activeChannels,
+    setup,
+    setupDone,
+    setupTotal,
+    adsense,
+    adsenseDone,
+    affiliate,
+    affiliateDone,
+    affiliateTotal,
+    postsPerDayInfo: perRun * runsPerDay,
+    progress: {
+      total, done, pct: total ? Math.round((done / total) * 100) : 0,
+      autoPass, autoTotal, manualDone, manualTotal,
+    },
+    plan,
+    requests: { notes: myNotes, topics: myTopics, pendingCount: userPending.length, baseline: site.editorialBaseline || [] },
+    perRun,
+    categories,
+    publishing: {
+      totalPosts: posts.length,
+      sitePublished: posts.length, // 빌드되면 사이트 발행 간주
+      bloggerEnabled: site.channels.blogger.enabled,
+      bloggerPublished,
+      byCat, byMonth,
+      recent: posts.slice(0, 12).map((p) => ({
+        title: p.title, date: p.date, category: p.category,
+        path: p.path, blogger: !!p.published?.blogger,
+      })),
+    },
+  };
+}
+
+// ---- HTML 렌더 ----
+const STYLE = `
+:root{--bg:#0f172a;--card:#1e293b;--fg:#e2e8f0;--mut:#94a3b8;--ok:#22c55e;--no:#f43f5e;--na:#475569;--ac:#38bdf8;--line:#334155}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 18px 80px}
+h1{font-size:24px;margin:0 0 4px}.sub{color:var(--mut);font-size:14px;margin-bottom:24px}
+.grid{display:grid;gap:16px}.cols{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.kpi{font-size:30px;font-weight:800}.kpi small{font-size:13px;color:var(--mut);font-weight:500}
+.label{color:var(--mut);font-size:13px;margin-bottom:6px}
+.bar{height:12px;background:#0b1220;border-radius:999px;overflow:hidden;margin-top:10px}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#38bdf8)}
+section{margin-top:30px}section h2{font-size:18px;border-bottom:1px solid var(--line);padding-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:600}
+.badge{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px}
+.b-done{background:rgba(34,197,94,.15);color:#4ade80}.b-todo{background:rgba(244,63,94,.15);color:#fb7185}
+.b-na{background:rgba(71,85,105,.25);color:#94a3b8}.b-auto{background:rgba(56,189,248,.15);color:#7dd3fc}
+.b-manual{background:rgba(168,85,247,.15);color:#c4b5fd}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:10px 0;padding:4px 14px}
+summary{cursor:pointer;padding:10px 0;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:10px}
+summary::-webkit-details-marker{display:none}
+.mini{font-size:12px;color:var(--mut)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}.row .d{color:var(--mut);font-size:12px}
+a{color:var(--ac)}
+.chl{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chl span{font-size:12px;background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:18px 0 8px;position:sticky;top:0;background:var(--bg);z-index:5}
+.tabs button{background:transparent;border:0;color:var(--mut);font-size:15px;font-weight:700;padding:12px 16px;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit}
+.tabs button:hover{color:var(--fg)}
+.tabs button.active{color:#fff;border-bottom-color:var(--ac)}
+.panel{display:none}.panel.active{display:block}
+.set{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);align-items:center}
+.set:last-child{border:0}.set .v{color:var(--mut);font-size:13px;word-break:break-all}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:9px;vertical-align:middle}
+.dot.on{background:var(--ok)}.dot.off{background:var(--no)}
+.linkrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:14px}
+.linkrow a{background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:7px 12px;text-decoration:none}
+.chcard{cursor:pointer;transition:border-color .15s}.chcard:hover{border-color:var(--ac)}
+.note{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:12px 14px;font-size:14px;margin-top:12px}
+`;
+
+function bars(obj, nameFn) {
+  const max = Math.max(1, ...Object.values(obj));
+  return Object.entries(obj)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) =>
+      `<div class="row"><span>${esc(nameFn ? nameFn(k) : k)}</span><span>${v}편</span></div>
+       <div class="bar"><span style="width:${Math.round((v / max) * 100)}%"></span></div>`
+    ).join("");
+}
+
+// 글 목록 테이블 행 (원고 다운로드 포함)
+function postRows(posts, showBlogger) {
+  const cols = 3 + (showBlogger ? 1 : 0) + 1;
+  if (!posts.length) return `<tr><td colspan="${cols}" class="mini">발행 글 없음</td></tr>`;
+  return posts.map((r) =>
+    `<tr><td><a href="${esc(site.url + r.path)}" target="_blank">${esc(r.title)}</a></td>
+      <td>${esc(catName(r.category))}</td><td>${esc(r.date)}</td>
+      ${showBlogger ? `<td><span class="badge ${r.blogger ? "b-done" : "b-todo"}">${r.blogger ? "발행" : "대기"}</span></td>` : ""}
+      <td><a href="drafts/${esc(r.slug)}.md" download>원고 ⬇</a></td></tr>`
+  ).join("");
+}
+// 발행 스케줄(예정) 표 — 예정일 + 기획 브리프
+function scheduleTable(plan) {
+  if (!plan.length) return `<div class="mini">예정된 주제가 없습니다.</div>`;
+  return `<table><thead><tr><th>예정일</th><th>제목</th><th>카테고리</th><th>핵심 키워드</th><th>구분</th></tr></thead><tbody>` +
+    plan.map((t) =>
+      `<tr><td>${esc(t.date)}</td><td>${esc(t.title)}</td><td>${esc(catName(t.category))}</td>
+        <td class="d">${esc((t.keywords || []).join(", "))}</td>
+        <td><span class="badge ${t.source === "운영자 요청" ? "b-manual" : "b-auto"}">${esc(t.source)}</span></td></tr>`
+    ).join("") + `</tbody></table>`;
+}
+// 설정/상태 목록
+function setRows(arr) {
+  return arr.map((s) =>
+    `<div class="set"><div><span class="dot ${s.ok ? "on" : "off"}"></span>${esc(s.k)}</div>
+      <div class="v">${esc(s.v || (s.ok ? "설정됨" : "미설정"))}</div></div>`
+  ).join("");
+}
+
+function render(d) {
+  const p = d.progress;
+  const ch = d.channels;
+  // 발행 스케줄 섹션(다운로드 포함) — 채널 공통
+  const planDownloads = `<div class="linkrow">
+    <a href="plan.md" download>📥 기획안 (.md)</a>
+    <a href="plan.csv" download>📥 스케줄 (.csv)</a></div>`;
+  const scheduleSection = (extra = "") => `
+<section><h2>🗓 발행 스케줄 (예정)</h2>
+  <div class="sub">매일 09:00·15:00·21:00(KST) 자동 발행 기준 예상 일정입니다(하루 3편). 운영자 요청이 시즌 주제보다 먼저 처리됩니다.</div>
+  <div class="card">${scheduleTable(d.plan)}</div>
+  ${planDownloads}${extra}</section>`;
+  const catCards = d.categories.map((c) => {
+    const pct = c.catTotal ? Math.round((c.catDone / c.catTotal) * 100) : 100;
+    const rows = c.items.map((it) => {
+      const b = it.status === "done" ? "b-done" : it.status === "na" ? "b-na" : "b-todo";
+      const st = it.status === "done" ? "완료" : it.status === "na" ? "해당없음" : "필요";
+      const tb = it.type === "auto" ? "b-auto" : "b-manual";
+      const tl = it.type === "auto" ? "자동" : "수동";
+      return `<div class="row"><div><div>${esc(it.item)} <span class="badge ${tb}">${tl}</span></div>
+        <div class="d">${esc(it.detail || it.note || "")}</div></div>
+        <div><span class="badge ${b}">${st}</span></div></div>`;
+    }).join("");
+    return `<details><summary>${esc(c.name)}
+      <span class="mini">${c.catDone}/${c.catTotal} (${pct}%)</span></summary>${rows}</details>`;
+  }).join("");
+
+  // ===== 탭1: 전체 =====
+  const overview = `
+<div class="grid cols">
+  <div class="card"><div class="label">SEO·GEO 진척도</div>
+    <div class="kpi">${p.pct}%<small> ${p.done}/${p.total}</small></div>
+    <div class="bar"><span style="width:${p.pct}%"></span></div></div>
+  <div class="card"><div class="label">자동 검사 통과</div>
+    <div class="kpi">${p.autoPass}<small>/${p.autoTotal}</small></div>
+    <div class="bar"><span style="width:${p.autoTotal ? Math.round(p.autoPass/p.autoTotal*100):0}%"></span></div></div>
+  <div class="card"><div class="label">총 발행 글</div>
+    <div class="kpi">${d.publishing.totalPosts}<small> 편</small></div></div>
+  <div class="card"><div class="label">활성 채널</div>
+    <div class="kpi">${d.activeChannels}<small> / 4</small></div></div>
+</div>
+
+<section><h2>📡 채널별 현황 <span class="mini">(연결 우선순위: 네이버 → 블로거 → 워드프레스 → 광고사이트)</span></h2>
+  <div class="grid cols">
+    <div class="card chcard" onclick="showTab('naver')">
+      <div class="label">${ch.naver.icon} ${ch.naver.label} <span class="badge b-manual">1순위</span></div>
+      <div class="kpi" style="font-size:24px">—</div>
+      <div class="chl"><span>수동(다운로드 제공)</span></div></div>
+    <div class="card chcard" onclick="showTab('blogger')">
+      <div class="label">${ch.blogger.icon} ${ch.blogger.label} <span class="badge b-manual">2순위</span></div>
+      <div class="kpi" style="font-size:24px">${ch.blogger.published}<small> 발행 / ${ch.blogger.pending} 대기</small></div>
+      <div class="chl"><span>${ch.blogger.configured ? "연동됨" : "연동 필요"}</span></div></div>
+    <div class="card chcard" onclick="showTab('wordpress')">
+      <div class="label">${ch.wordpress.icon} ${ch.wordpress.label} <span class="badge b-manual">3순위</span></div>
+      <div class="kpi" style="font-size:24px">${ch.wordpress.published}<small> 발행 / ${ch.wordpress.pending} 대기</small></div>
+      <div class="chl"><span>${ch.wordpress.configured ? "연동됨" : "연동 필요"}</span></div></div>
+    <div class="card chcard" onclick="showTab('ads')">
+      <div class="label">💰 광고사이트(수익화) <span class="badge b-manual">4순위</span></div>
+      <div class="kpi" style="font-size:24px">${d.adsenseDone + d.affiliateDone}<small>/${d.adsense.length + d.affiliateTotal} 준비됨</small></div>
+      <div class="chl"><span>쇼핑커넥트·쿠팡·AdSense·애드포스트</span></div></div>
+    <div class="card chcard" onclick="showTab('site')">
+      <div class="label">${ch.site.icon} ${ch.site.label} <span class="badge b-done">운영중</span></div>
+      <div class="kpi" style="font-size:24px">${ch.site.count}<small> 편 발행</small></div>
+      <div class="chl"><span>기준 채널</span></div></div>
+  </div></section>
+
+<section><h2>🚦 구축 · 연동 현황 <span class="mini">(${d.setupDone}/${d.setupTotal} 완료)</span></h2>
+  <div class="sub">코드로 구축된 항목은 자동으로 ● 표시됩니다. ● 빨강은 운영자 설정(자격증명/계정)이 필요한 항목입니다.</div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <div class="card"><div class="label">🔎 배포 · 검색등록</div>${setRows(d.setup.search)}</div>
+    <div class="card"><div class="label">📡 채널</div>${setRows(d.setup.channels)}</div>
+    <div class="card"><div class="label">💰 수익화</div>${setRows(d.setup.money)}</div>
+    <div class="card"><div class="label">🧩 사이트 기능</div>${setRows(d.setup.features)}</div>
+  </div></section>
+
+<section><h2>💰 수익화(광고사이트) 준비도 <span class="mini">(${d.adsenseDone + d.affiliateDone}/${d.adsense.length + d.affiliateTotal})</span></h2>
+  <div class="sub">수익 발생까지 걸리는 시간이 짧은 순서입니다. 각 채널에 승인 리드타임이 있으므로 <b>지금 시작해야 총 대기시간이 최소화</b>됩니다.
+    자세한 절차와 가입 링크는 <a href="#ads" onclick="showTab('ads')">💰 광고사이트 탭</a>에서 확인하세요.</div>
+  <div class="card"><table><thead><tr><th>수익화 채널</th><th>수익까지 예상 시간</th><th>상태</th></tr></thead><tbody>
+    <tr><td>① 네이버 쇼핑커넥트 (제휴)</td><td class="d">심사 없음 — 가입 즉시 시작</td><td><span class="badge ${d.affiliate.naverConnect.every((s)=>s.ok) ? "b-done" : "b-todo"}">${d.affiliate.naverConnect.filter((s)=>s.ok).length}/${d.affiliate.naverConnect.length}</span></td></tr>
+    <tr><td>② 쿠팡 파트너스 (제휴)</td><td class="d">가입 즉시 링크 발급 — 수일 내 가능</td><td><span class="badge ${d.affiliate.coupang.every((s)=>s.ok) ? "b-done" : "b-todo"}">${d.affiliate.coupang.filter((s)=>s.ok).length}/${d.affiliate.coupang.length}</span></td></tr>
+    <tr><td>③ Google AdSense (배너)</td><td class="d">커스텀 도메인 필수 + 심사 2~4주</td><td><span class="badge ${d.adsenseDone === d.adsense.length ? "b-done" : "b-todo"}">${d.adsenseDone}/${d.adsense.length}</span></td></tr>
+    <tr><td>④ 네이버 애드포스트 (네이버 블로그)</td><td class="d">블로그 90일+ 운영 후 신청 가능</td><td><span class="badge b-todo">${d.affiliate.adpost.filter((s)=>s.ok).length}/${d.affiliate.adpost.length}</span></td></tr>
+  </tbody></table></div></section>
+
+<section><h2>🗓 발행 예정 (플랜 검토)</h2>
+  <div class="sub">다음에 자동 발행될 순서입니다. 운영자 요청이 시즌 주제보다 먼저 처리됩니다. 매일 09:00·15:00·21:00(KST) 각 ${d.perRun}편(하루 ${d.perRun * (site.publishing.runsPerDay || 1)}편).</div>
+  <div class="card"><table><thead><tr><th>#</th><th>제목</th><th>카테고리</th><th>구분</th><th>시점</th></tr></thead><tbody>
+  ${d.plan.length ? d.plan.map((t, i) => `<tr>
+      <td>${i + 1}</td><td>${esc(t.title)}</td><td>${esc(catName(t.category))}</td>
+      <td><span class="badge ${t.source === "운영자 요청" ? "b-manual" : "b-auto"}">${esc(t.source)}</span></td>
+      <td><span class="badge ${t.when === "다음 발행" ? "b-done" : "b-na"}">${esc(t.when)}</span></td></tr>`).join("")
+    : `<tr><td colspan="5" class="mini">예정된 주제가 없습니다.</td></tr>`}
+  </tbody></table></div></section>
+
+<section><h2>📝 내 의견 · 요청 (편집 지시)</h2>
+  <div class="sub"><code>config/requests.json</code> 에서 관리 ·
+    <a href="${esc(d.editUrl)}" target="_blank">✏️ 깃허브에서 바로 편집</a> → 저장하면 다음 발행부터 반영됩니다.</div>
+  <div class="card">
+    <div class="label">📌 고정 작성 기준 (모든 글 항상 적용 · 코드 내장)</div>
+    <ol style="margin:6px 0 18px;padding-left:20px">
+      ${(d.requests.baseline || []).map((r) => `<li style="margin:4px 0">${esc(r)}</li>`).join("")}
+    </ol>
+    <div class="label">공통 편집 지침 (운영자 수정 가능)</div>
+    <div style="margin:6px 0 16px">${d.requests.notes ? esc(d.requests.notes) : "<span class=mini>아직 없음 — requests.json 의 notes 에 적어주세요. 예: '존댓말, 정부 공식 출처 필수, 표 적극 활용'</span>"}</div>
+    <div class="label">요청 주제 (${d.requests.pendingCount}건 대기)</div>
+    <table style="margin-top:6px"><thead><tr><th>제목</th><th>카테고리</th><th>상태</th><th>메모</th></tr></thead><tbody>
+    ${d.requests.topics.length ? d.requests.topics.map((t) => `<tr>
+        <td>${esc(t.title)}</td><td>${esc(catName(t.category))}</td>
+        <td><span class="badge ${t.status === "done" ? "b-done" : t.status === "pending" ? "b-manual" : "b-na"}">${t.status === "done" ? "발행됨" : t.status === "pending" ? "대기" : esc(t.status)}</span></td>
+        <td class="d">${esc(t.note || "")}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="mini">등록된 요청이 없습니다.</td></tr>`}
+    </tbody></table>
+  </div></section>
+
+<section><h2>📅 월별 발행 추이</h2>
+  <div class="card">${Object.keys(d.publishing.byMonth).length ? bars(d.publishing.byMonth) : "<div class=mini>데이터 없음</div>"}</div></section>`;
+
+  // ===== 탭2: 자체 사이트 =====
+  const siteTab = `
+<section><h2>🌐 자체 사이트 상태</h2>
+  <div class="grid cols">
+    <div class="card"><div class="label">발행 글</div><div class="kpi">${ch.site.count}<small> 편</small></div></div>
+    <div class="card"><div class="label">배포</div><div class="kpi" style="font-size:22px">GitHub Pages</div>
+      <div class="chl"><span>운영중</span></div></div>
+    <div class="card"><div class="label">SEO·GEO 자동검사</div><div class="kpi">${p.autoPass}<small>/${p.autoTotal}</small></div></div>
+  </div>
+  <div class="linkrow">
+    <a href="${esc(ch.site.url)}/" target="_blank">사이트 열기</a>
+    <a href="${esc(ch.site.url)}/sitemap.xml" target="_blank">sitemap.xml</a>
+    <a href="${esc(ch.site.url)}/robots.txt" target="_blank">robots.txt</a>
+    <a href="${esc(ch.site.url)}/llms.txt" target="_blank">llms.txt</a>
+    <a href="${esc(ch.site.url)}/rss.xml" target="_blank">RSS</a>
+  </div></section>
+
+${scheduleSection()}
+
+<section><h2>⚙️ 수익화·분석 설정</h2>
+  <div class="card">${setRows(ch.site.settings)}</div>
+  <div class="note">미설정 항목은 GitHub <b>Settings → Secrets and variables → Actions → Variables</b> 에 등록하면 자동 반영됩니다. 자세한 절차는 <a href="${esc(d.setupUrl)}" target="_blank">SETUP 가이드</a> 참고.</div></section>
+
+<section><h2>🗂 카테고리별 발행</h2>
+  <div class="card">${Object.keys(d.publishing.byCat).length ? bars(d.publishing.byCat, catName) : "<div class=mini>아직 발행된 글이 없습니다.</div>"}</div></section>
+
+<section><h2>✅ SEO · GEO 체크리스트</h2>
+  <div class="sub">자동 항목은 빌드 결과물을 실시간 검사한 결과(현재 ${p.autoPass}/${p.autoTotal}). 수동 항목은 <code>config/geo-checklist.json</code> 의 status 로 관리합니다.</div>
+  ${catCards}</section>
+
+<section><h2>📰 사이트 발행 글 (${ch.site.count})</h2>
+  <div class="card"><table><thead><tr><th>제목</th><th>카테고리</th><th>게시일</th><th>원고</th></tr></thead><tbody>
+  ${postRows(ch.site.posts, false)}</tbody></table></div></section>`;
+
+  // ===== 탭3: 구글 블로거 =====
+  const bloggerTab = `
+<section><h2>📝 구글 블로거 상태</h2>
+  <div class="grid cols">
+    <div class="card"><div class="label">연동 상태</div>
+      <div class="kpi" style="font-size:22px">${ch.blogger.configured ? "연동됨" : "연동 필요"}</div></div>
+    <div class="card"><div class="label">발행됨</div><div class="kpi">${ch.blogger.published}<small> 편</small></div></div>
+    <div class="card"><div class="label">발행 대기</div><div class="kpi">${ch.blogger.pending}<small> 편</small></div></div>
+  </div>
+  ${ch.blogger.configured ? "" : `<div class="note">아직 연동되지 않았습니다. 아래 4개 Secret 을 등록하고 워크플로우 입력 <code>publish_blogger=true</code>(또는 변수 <code>PUBLISH_BLOGGER=true</code>) 로 두면 자동 발행됩니다. 발급 절차: <a href="${esc(d.setupUrl)}" target="_blank">SETUP STEP 6</a>.</div>`}</section>
+
+${scheduleSection()}
+
+<section><h2>🔑 연동 설정 (Secrets)</h2>
+  <div class="card">${setRows(ch.blogger.secrets.map((s) => ({ k: s.k, ok: s.ok, v: s.ok ? "등록됨" : "미등록" })))}</div></section>
+
+<section><h2>📰 블로거 발행 대상 글 (${ch.blogger.posts.length})</h2>
+  <div class="card"><table><thead><tr><th>제목</th><th>카테고리</th><th>게시일</th><th>블로거</th><th>원고</th></tr></thead><tbody>
+  ${postRows(ch.blogger.posts, true)}</tbody></table></div></section>`;
+
+  // ===== 탭: 워드프레스 =====
+  const wpTab = `
+<section><h2>🔵 워드프레스 상태</h2>
+  <div class="grid cols">
+    <div class="card"><div class="label">연동 상태</div>
+      <div class="kpi" style="font-size:22px">${ch.wordpress.configured ? "연동됨" : "연동 필요"}</div></div>
+    <div class="card"><div class="label">발행됨</div><div class="kpi">${ch.wordpress.published}<small> 편</small></div></div>
+    <div class="card"><div class="label">발행 대기</div><div class="kpi">${ch.wordpress.pending}<small> 편</small></div></div>
+  </div>
+  ${ch.wordpress.configured ? "" : `<div class="note">아직 연동되지 않았습니다. 아래 항목(변수/시크릿)을 등록하면 자동 발행됩니다: <code>WORDPRESS_URL</code>·<code>WORDPRESS_USER</code>(Variables), <code>WORDPRESS_APP_PASSWORD</code>(Secret). 워드프레스 → 사용자 → 프로필 → <b>애플리케이션 비밀번호</b>에서 발급. 절차: <a href="${esc(d.setupUrl)}" target="_blank">SETUP 가이드</a>.</div>`}</section>
+
+${scheduleSection()}
+
+<section><h2>🔑 연동 설정</h2>
+  <div class="card">${setRows(ch.wordpress.secrets.map((s) => ({ k: s.k, ok: s.ok, v: s.ok ? "등록됨" : "미등록" })))}</div>
+  <div class="note">💡 워드프레스는 <b>호스팅</b>이 필요합니다(워드프레스닷컴 비즈니스 이상 또는 자체 호스팅). REST API + 애플리케이션 비밀번호만 있으면 자체 사이트와 동일 글이 자동 발행됩니다.</div></section>
+
+<section><h2>📰 워드프레스 발행 대상 글 (${ch.wordpress.posts.length})</h2>
+  <div class="card"><table><thead><tr><th>제목</th><th>카테고리</th><th>게시일</th><th>WP</th><th>원고</th></tr></thead><tbody>
+  ${ch.wordpress.posts.length ? ch.wordpress.posts.map((r) =>
+    `<tr><td><a href="${esc(site.url + r.path)}" target="_blank">${esc(r.title)}</a></td>
+      <td>${esc(catName(r.category))}</td><td>${esc(r.date)}</td>
+      <td><span class="badge b-todo">대기</span></td>
+      <td><a href="drafts/${esc(r.slug)}.md" download>원고 ⬇</a></td></tr>`).join("")
+    : `<tr><td colspan="5" class="mini">연동 후 발행 대상 글이 여기에 표시됩니다. (신규 생성 글부터 WP 채널로 지정됨)</td></tr>`}
+  </tbody></table></div></section>`;
+
+  // ===== 탭4: 네이버 블로그 =====
+  const naverTab = `
+<section><h2>🟢 네이버 블로그</h2>
+  <div class="card">
+    <div class="set"><div><span class="dot off"></span>자동 발행 상태</div><div class="v">현재 제외</div></div>
+    <div class="set"><div>사유</div><div class="v">네이버는 개인 블로그 글쓰기 공식 API가 없음</div></div>
+  </div>
+  <div class="note">
+    <b>대안 옵션</b><br>
+    1) <b>반자동</b>: 자동 생성된 원고를 다운로드해 네이버 에디터에서 <b>다듬어</b> 발행(현재 권장 — 아래 주의 참고).<br>
+    2) <b>비공식 자동화</b>(Selenium 등): 네이버 이용약관 위반·계정 차단 위험이 있어 미적용.<br>
+    추후 네이버 공식 채널/연동 정책이 열리면 이 채널을 활성화할 수 있도록 구조가 준비돼 있습니다.
+  </div></section>
+
+<section><h2>💰 네이버 애드포스트 (이 채널의 수익화)</h2>
+  <div class="card">${setRows(d.affiliate.adpost)}
+    <div class="note">애드포스트 심사 기준: <b>개설 90일+ · 공개 글 50개+ · 복사 콘텐츠 없음 · 방문자 지표</b>.
+      블로그를 아직 안 만들었다면 <b>오늘 개설</b>하세요 — 90일 시계가 개설일부터 돌아갑니다.
+      신청: <a href="https://adpost.naver.com" target="_blank">adpost.naver.com</a></div></section>
+
+<section><h2>📥 기획안 · 원고 다운로드 (네이버 수동 발행용)</h2>
+  <div class="sub">네이버는 직접 발행해야 하므로, 아래 파일을 받아 네이버 에디터에서 다듬어 발행하세요.</div>
+  <div class="linkrow">
+    <a href="naver-content-pack.md" download>📦 통합 기획안+전체 원고 (.md)</a>
+    <a href="plan.md" download>📥 기획안 (.md)</a>
+    <a href="plan.csv" download>📥 스케줄 (.csv)</a>
+  </div>
+  <div class="note">⚠️ <b>그대로 복붙 금지</b> — 사이트에 이미 게시된 글을 그대로 붙여넣으면
+    네이버 검색의 <b>유사문서 필터</b>에 걸려 노출이 제한되고, <b>애드포스트 심사에서 '복사 콘텐츠'로 탈락</b>할 수 있습니다.
+    원고를 뼈대로 삼아 도입부·소제목 구성·어투를 바꾸고 본인 경험 한두 문단을 더해 발행하세요(글당 10~15분).</div>
+</section>
+
+${scheduleSection()}
+
+<section><h2>📝 원고 다운로드 (글별)</h2>
+  <div class="card"><table><thead><tr><th>제목</th><th>카테고리</th><th>게시일</th><th>원고</th></tr></thead><tbody>
+  ${postRows(ch.site.posts, false)}</tbody></table></div></section>
+
+<section><h2>🔗 네이버 노출 보조 (적용됨)</h2>
+  <div class="card">
+    <div class="set"><div><span class="dot ${site.analytics.naverWebmaster ? "on" : "off"}"></span>네이버 서치어드바이저 소유확인</div>
+      <div class="v">${site.analytics.naverWebmaster ? "설정됨" : "미설정 (NAVER_SITE_VERIFICATION)"}</div></div>
+    <div class="set"><div><span class="dot on"></span>RSS 피드 제공</div><div class="v">/rss.xml</div></div>
+  </div>
+  <div class="note">자체 사이트 글을 네이버 검색에 노출시키려면 <a href="https://searchadvisor.naver.com" target="_blank">네이버 서치어드바이저</a>에 사이트를 등록하고 사이트맵을 제출하세요.</div></section>`;
+
+  // ===== 탭: 광고사이트(수익화) — 애드센스·쇼핑커넥트·쿠팡파트너스 =====
+  const adsTab = `
+<section><h2>💰 수익화 최속 경로 (수익 도달 속도 순)</h2>
+  <div class="sub">각 채널마다 승인 리드타임이 다르므로, 순서를 기다리지 말고 <b>오늘 병렬로 시작</b>하는 것이 총 대기시간을 최소화합니다.</div>
+  <div class="card">
+    <div class="row"><div><b>① 네이버 쇼핑커넥트 가입</b> — 오늘 <span class="badge b-done">심사 없음</span></div>
+      <div class="d">브랜드커넥트 스페이스 개설 → 쇼핑커넥트 약관 동의 → 즉시 시작 · 수수료 최대 30~50%(판매자 설정)</div></div>
+    <div class="row"><div><b>② 쿠팡 파트너스 가입</b> — 오늘 <span class="badge b-done">즉시 링크 발급</span></div>
+      <div class="d">기존 글에 상품 링크 삽입 → 수일 내 수익 가능 · 최종 승인은 누적 판매 15만원 도달 시 자동 심사</div></div>
+    <div class="row"><div><b>③ 커스텀 도메인 구매 + AdSense 신청</b> — 이번 주</div>
+      <div class="d">도메인은 AdSense의 전제조건(연 1~2만원) · 심사 2~4주</div></div>
+    <div class="row"><div><b>④ 네이버 블로그 개설 (애드포스트 시계 시작)</b> — 오늘</div>
+      <div class="d">애드포스트는 개설 90일+ 운영 실적 심사 → 오늘 개설해야 3개월 뒤 신청 가능</div></div>
+  </div></section>
+
+<section><h2>1️⃣ 네이버 쇼핑커넥트 (제휴 마케팅) — 심사 없이 즉시 시작</h2>
+  <div class="sub">네이버가 2025년 7월 정식 출시한 크리에이터 제휴 서비스입니다. 스마트스토어 상품 링크를 콘텐츠에 넣고 구매 발생 시 수수료(판매자 설정, 최대 30~50%)를 받습니다.</div>
+  <div class="card">${setRows(d.affiliate.naverConnect)}
+    <div class="note">가입: 네이버 <b>브랜드커넥트</b>에서 크리에이터 스페이스 개설 → <b>쇼핑 커넥트</b> 메뉴에서 이용약관 동의 → 즉시 시작(사전 심사 없음).
+      활동 채널로 네이버 블로그·인스타그램·유튜브는 물론 <b>개인 사이트(본 사이트)</b>도 등록할 수 있습니다.<br>
+      💡 네이버 블로그(1순위 채널)와 궁합이 가장 좋습니다 — 네이버 생태계 안에서 콘텐츠·상품·구매가 한 흐름으로 이어집니다.<br>
+      식별자를 GitHub <b>Variables</b>에 <code>NAVER_CONNECT_ID</code>로 등록하면 대시보드에 연동 상태가 반영되고,
+      글 frontmatter에 <code>affiliate: [naverConnect]</code>를 넣으면 고지 문구가 자동 삽입됩니다.<br>
+      ℹ️ 명칭 주의: "쇼핑파트너센터"는 스마트스토어 <b>판매자</b>용 센터로 별개입니다. 블로거용 제휴는 <b>쇼핑커넥트</b>가 정식 명칭입니다.</div>
+  </div></section>
+
+<section><h2>2️⃣ 쿠팡 파트너스 (제휴 마케팅) — 즉시 링크 발급</h2>
+  <div class="sub">글에서 소개한 상품에 쿠팡 링크를 걸고, 클릭 후 구매가 발생하면 수수료를 받는 방식입니다. 배너광고와 병행 가능합니다.</div>
+  <div class="card">${setRows(d.affiliate.coupang)}
+    <div class="note">가입: <a href="https://partners.coupang.com" target="_blank">partners.coupang.com</a> → 가입 후 발급되는 채널(트래킹) ID를
+      GitHub <b>Variables</b>에 <code>COUPANG_PARTNER_ID</code>로 등록하면 연동됩니다.<br>
+      ⚠️ 정책상 링크가 포함된 글에는 <b>"이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다."</b> 문구를 반드시 표시해야 하며,
+      본 사이트는 글 frontmatter에 <code>affiliate: [coupang]</code>이 있으면 이 문구를 자동으로 삽입합니다.<br>
+      💡 <b>최종 승인</b>은 누적 판매금액 15만원 도달 시 자동 심사되므로, 가입 직후부터 활동 실적을 쌓는 것이 중요합니다.</div>
+  </div></section>
+
+<section><h2>3️⃣ Google AdSense (배너 광고) — 커스텀 도메인 필수</h2>
+  <div class="sub">정공법 승인 기준입니다. 미끼(그림자) 사이트 없이 <b>이 사이트 그대로</b> 신청하세요.</div>
+  <div class="card">${setRows(d.adsense)}
+    <div class="note">⚠️ <b>커스텀 도메인이 사실상 필수입니다.</b> AdSense는 루트 도메인만 사이트로 등록할 수 있어
+      <code>github.io</code> 하위 주소(현재 주소)로는 신청 자체가 불가합니다. 도메인 구매(연 1~2만원) 후
+      <a href="${esc(d.setupUrl)}" target="_blank">SETUP STEP 10</a>대로 연결하고 신청하세요.<br>
+      콘텐츠 요건(20편+)은 이미 충족했으므로, <b>도메인 연결이 유일하게 남은 관문</b>입니다.<br>
+      (대안: 구글 블로거는 애드센스 '호스트 파트너'라 blogspot 주소 그대로 승인 신청이 가능합니다 — 단, 그 승인은 해당 블로그에만 적용됩니다.)<br>
+      가입: <a href="https://adsense.google.com" target="_blank">adsense.google.com</a></div>
+  </div></section>
+
+<section><h2>4️⃣ 네이버 애드포스트 (네이버 블로그 광고 수익)</h2>
+  <div class="sub">네이버 블로그에 붙는 광고 수익 프로그램입니다. 사이트 코드가 아니라 <b>블로그 운영 실적</b>으로 심사합니다.</div>
+  <div class="card">${setRows(d.affiliate.adpost)}
+    <div class="note">신청: <a href="https://adpost.naver.com" target="_blank">adpost.naver.com</a> · 심사 기준: 개설 90일+, 공개 글 50개+, 방문자 지표, <b>복사 콘텐츠 없음</b>.<br>
+      ⚠️ 사이트 글을 <b>그대로 복붙하면 '복사 콘텐츠'로 탈락</b>할 수 있습니다. 네이버 탭의 원고를 기반으로
+      도입부·구성·어투를 다듬어 발행하세요(네이버 검색의 유사문서 필터에도 유리합니다).</div>
+  </div></section>
+
+<section><h2>5️⃣ Taboola (추천 위젯) — 후순위</h2>
+  <div class="card">
+    <div class="note">Taboola 등 네이티브 광고 네트워크는 <b>일정 규모 이상의 트래픽</b>을 요구해 신규 사이트는 승인되기 어렵습니다.
+      트래픽이 쌓인 뒤(월 수만 PV+) 신청하는 후순위 항목으로 두세요. 코드는 이미 준비되어 있어 <code>TABOOLA_PUBLISHER</code>만 등록하면 활성화됩니다.</div>
+  </div></section>
+
+<section><h2>📝 제휴 마케팅 콘텐츠 운영 방식</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">제휴 마케팅은 "상품 추천/비교"형 콘텐츠에서 효과가 크므로, 상품 추천 주제를
+      <code>config/requests.json</code>에 등록해 요청하거나, 다음 라운드의 주제·자동화 기획에서 전용 카테고리로 편입할 수 있습니다.
+      (예: 계절 주제인 '제습기'·'장마철 곰팡이' 글은 쿠팡/네이버 상품 링크와 궁합이 좋습니다.)</p>
+    <p style="margin:0">글 frontmatter에 <code>affiliate: ["coupang"]</code> 또는 <code>["naverConnect"]</code>를 추가하면
+      해당 글 상단에 고지 문구가 자동 노출됩니다(<code>automation/render.mjs</code>의 <code>affiliateDisclosure()</code>).</p>
+  </div></section>`;
+
+  return `<!doctype html><html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>${esc(site.name)} · 운영 대시보드</title>
+<style>${STYLE}</style></head><body><div class="wrap">
+<h1>📊 운영 대시보드</h1>
+<div class="sub">${esc(site.name)} — 채널별 발행·관리 모니터링 · 생성 ${d.generatedAt} (비공개 페이지)</div>
+
+<div class="tabs">
+  <button data-tab="all" onclick="showTab('all',this)">📊 전체</button>
+  <button data-tab="naver" onclick="showTab('naver',this)">🟢 네이버 블로그 · 1순위</button>
+  <button data-tab="blogger" onclick="showTab('blogger',this)">📝 구글 블로거 · 2순위</button>
+  <button data-tab="wordpress" onclick="showTab('wordpress',this)">🔵 워드프레스 · 3순위</button>
+  <button data-tab="ads" onclick="showTab('ads',this)">💰 광고사이트 · 4순위</button>
+  <button data-tab="site" onclick="showTab('site',this)">🌐 자체 사이트</button>
+</div>
+
+<div id="t-all" class="panel">${overview}</div>
+<div id="t-naver" class="panel">${naverTab}</div>
+<div id="t-blogger" class="panel">${bloggerTab}</div>
+<div id="t-wordpress" class="panel">${wpTab}</div>
+<div id="t-ads" class="panel">${adsTab}</div>
+<div id="t-site" class="panel">${siteTab}</div>
+
+<script>
+function showTab(key, btn){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.tabs button').forEach(function(b){b.classList.remove('active')});
+  var el=document.getElementById('t-'+key); if(el) el.classList.add('active');
+  if(!btn) btn=document.querySelector('.tabs button[data-tab="'+key+'"]');
+  if(btn) btn.classList.add('active');
+  if(history.replaceState) history.replaceState(null,'','#'+key);
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var h=(location.hash||'').replace('#','');
+  showTab(document.querySelector('.tabs button[data-tab="'+h+'"]') ? h : 'all');
+});
+</script>
+</div></body></html>`;
+}
+
+// 발행 스케줄/기획안 → 다운로드용 파일 생성
+function writePlanFiles(dir, plan, generatedAt) {
+  const rows = plan.map((t, i) =>
+    `| ${i + 1} | ${t.date} | ${t.title} | ${catName(t.category)} | ${(t.keywords || []).join(", ")} | ${t.source} |`
+  );
+  const md = `# 발행 기획안 · 스케줄 — ${site.name}\n\n생성일: ${generatedAt} · 매일 09:00·15:00·21:00(KST) 자동 발행 기준 예상 일정(하루 3편)\n\n` +
+    `| # | 예정일 | 제목 | 카테고리 | 핵심 키워드 | 구분 |\n|---|---|---|---|---|---|\n${rows.join("\n")}\n`;
+  fs.writeFileSync(path.join(dir, "plan.md"), md, "utf8");
+
+  const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
+  const csv = "﻿" + ["순번,예정일,제목,카테고리,핵심키워드,구분"]
+    .concat(plan.map((t, i) =>
+      [i + 1, t.date, t.title, catName(t.category), (t.keywords || []).join(" "), t.source].map(esc).join(",")
+    )).join("\n") + "\n";
+  fs.writeFileSync(path.join(dir, "plan.csv"), csv, "utf8");
+}
+
+// 발행된 글의 원고(.md) — 수동 발행/검토/네이버용 복사
+function writeDrafts(dir, posts) {
+  const draftsDir = path.join(dir, "drafts");
+  ensureDir(draftsDir);
+  for (const p of posts) {
+    const head = `# ${p.title}\n\n> ${p.description || ""}\n\n- 카테고리: ${catName(p.category)}\n- 게시일: ${p.date}\n- 키워드: ${(p.keywords || []).join(", ")}\n\n---\n\n`;
+    fs.writeFileSync(path.join(draftsDir, `${p.slug}.md`), head + (p.body || "").trim() + "\n", "utf8");
+  }
+}
+
+// 네이버용 통합 기획안 팩(스케줄 + 전체 원고를 한 파일로)
+function writeNaverPack(dir, plan, posts) {
+  let out = `# ${site.name} — 네이버 블로그용 기획안 & 원고 모음\n\n생성일: ${todayKST()}\n네이버는 자동 발행 API가 없어, 아래 원고를 복사해 네이버 에디터에 붙여넣어 발행하세요.\n\n`;
+  out += `## 1) 발행 예정 스케줄\n\n| 예정일 | 제목 | 카테고리 | 구분 |\n|---|---|---|---|\n` +
+    plan.map((t) => `| ${t.date} | ${t.title} | ${catName(t.category)} | ${t.source} |`).join("\n") + "\n\n";
+  out += `## 2) 발행 완료 원고 (복사용)\n\n`;
+  for (const p of posts) {
+    out += `\n\n---\n\n### ${p.title}\n\n- 카테고리: ${catName(p.category)} · 게시일: ${p.date}\n- 키워드: ${(p.keywords || []).join(", ")}\n\n${(p.body || "").trim()}\n`;
+  }
+  fs.writeFileSync(path.join(dir, "naver-content-pack.md"), out, "utf8");
+}
+
+export function buildDashboard() {
+  const data = collect();
+  const dir = path.join(PUBLIC_DIR, "dashboard");
+  ensureDir(dir);
+  fs.writeFileSync(path.join(dir, "index.html"), render(data), "utf8");
+  fs.writeFileSync(path.join(dir, "data.json"), JSON.stringify(data, null, 2), "utf8");
+
+  // 다운로드 산출물 (기획안·스케줄·원고)
+  const posts = loadPosts();
+  writePlanFiles(dir, data.plan, data.generatedAt);
+  writeDrafts(dir, posts);
+  writeNaverPack(dir, data.plan, posts);
+
+  console.log(
+    `[dashboard] 생성: /dashboard/ — 진척도 ${data.progress.pct}% ` +
+    `(자동 ${data.progress.autoPass}/${data.progress.autoTotal}), 발행 ${data.publishing.totalPosts}편`
+  );
+  return data;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) buildDashboard();
