@@ -46,6 +46,19 @@ Secrets:
 블로거 채널을 붙이려면 해당 사이트용 블로그를 만들고 `BLOGGER_BLOG_ID` 등 Secrets 4종을 추가하면
 자동 활성화된다(`channels.blogger.enabled = !!BLOGGER_BLOG_ID`).
 
+## 코드 자동 동기화 (원본 → 위성 레포)
+
+템플릿 복제는 "그 시점의 스냅샷"이라 이후 코드 개선이 위성 레포에 반영되지 않는다.
+`.github/workflows/sync-sites.yml` 이 이 문제를 해결한다:
+
+- **원본(이 레포)에 코드 푸시** → 위성 레포들에 코드만 자동 반영(커밋·푸시) → 위성 사이트 자동 재배포
+- 동기화 범위: automation/, src/styles/, src/assets/brand/, .github/, docs/, config(프로필·시즌 주제) 등 **코드만**
+- 보존(절대 안 건드림): content/posts, 커버 이미지, `*-generated-topics.json`, requests.json, revenue.json
+- 활성화 조건 — **이 레포(원본)에만** 등록:
+  - Secret `SYNC_TOKEN`: fine-grained PAT (대상 레포 선택, 권한: **Contents R/W + Workflows R/W**)
+  - Variable `SYNC_TARGETS`: `leejiho-pslab/todayskkultip leejiho-pslab/jype` (공백 구분)
+- 미등록 시 조용히 건너뛴다. 위성 레포에 복사된 이 워크플로우도 SYNC_TARGETS 가 없어 동작하지 않는다.
+
 ## 로컬 테스트
 
 ```bash

@@ -40,18 +40,20 @@ function coverFor(post) {
 }
 
 /** 본문 마크다운 → HTML.
- *  광고 극대화: 소제목(H2) 2개마다 인아티클 광고 삽입(최대 3회) +
+ *  광고 극대화: 소제목(H2) 2개마다 인아티클 광고 삽입(글 길이 비례, 최대 4회) +
  *  내부 링크: 첫 광고 지점에 "함께 보면 좋은 글" 인라인 박스 동반 삽입. */
 function renderBody(markdown, inlineBox = "") {
   const html = fixLeftoverBold(marked.parse(markdown));
   const adUnit = adsenseUnit("inArticle");
   const parts = html.split("<h2");
   if (parts.length < 3) return html + inlineBox + adUnit;
-  // parts[0]=도입부, parts[1..]=각 H2 섹션. 섹션 2,4,6 시작 직전에 삽입.
+  // parts[0]=도입부, parts[1..]=각 H2 섹션. 섹션 2,4,6,8 시작 직전에 삽입.
+  // 상한은 글 길이에 비례(섹션 2개당 1개, 최대 4) — 짧은 글에 광고만 빽빽한 상황 방지.
+  const maxAds = Math.min(4, Math.floor((parts.length - 1) / 2));
   let out = parts[0];
   let adCount = 0;
   for (let i = 1; i < parts.length; i++) {
-    if (i >= 2 && (i - 2) % 2 === 0 && adCount < 3) {
+    if (i >= 2 && (i - 2) % 2 === 0 && adCount < maxAds) {
       out += adUnit;
       if (adCount === 0) out += inlineBox; // 첫 삽입 지점에 관련글 박스 동반
       adCount++;
@@ -229,6 +231,7 @@ function buildPost(post, allPosts, validTags = new Set()) {
       ${bodyHtml}
       ${adsenseUnit("bottom")}
       ${faqHtml}
+      ${post.faqs && post.faqs.length ? adsenseUnit("inArticle") : ""}
       ${taboolaWidget()}
       ${naverAd()}
       ${tagsHtml}
@@ -257,12 +260,14 @@ function postCard(p) {
   </li>`;
 }
 
-/** 목록 카드 배열 중간(7번째 위치)에 인피드 광고 삽입 */
+/** 목록 카드 배열 중간(7번째·14번째 위치)에 인피드 광고 삽입 */
 function cardsWithFeedAd(items) {
   const cards = items.map(postCard);
   const feedAd = adsenseUnit("inArticle");
   if (feedAd && cards.length > 6) {
     cards.splice(6, 0, `<li class="feed-ad">${feedAd}</li>`);
+    // 목록이 길면(페이지당 12개) 한 번 더 — 스크롤 하단 노출
+    if (cards.length > 13) cards.splice(13, 0, `<li class="feed-ad">${feedAd}</li>`);
   }
   return cards.join("");
 }
@@ -614,6 +619,16 @@ function copyAssets() {
   const srcAssets = path.join(ROOT, "src", "assets");
   if (fs.existsSync(srcAssets)) {
     fs.cpSync(srcAssets, destAssets, { recursive: true });
+  }
+  // 멀티 사이트: 프로필 전용 브랜드 이미지(src/assets/brand/<profile>/)가 있으면
+  // 기본(꿀팁) 브랜드 파일을 현재 프로필 것으로 덮어쓴다 — 레포 복제 시 별도 작업 불필요
+  if (site.profile && site.profile !== "default") {
+    const brandDir = path.join(srcAssets, "brand", site.profile);
+    if (fs.existsSync(brandDir)) {
+      for (const f of fs.readdirSync(brandDir)) {
+        fs.copyFileSync(path.join(brandDir, f), path.join(destAssets, f));
+      }
+    }
   }
   // GitHub Pages 가 Jekyll 처리를 건너뛰도록
   fs.writeFileSync(path.join(PUBLIC_DIR, ".nojekyll"), "");

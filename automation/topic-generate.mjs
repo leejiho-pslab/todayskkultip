@@ -95,7 +95,8 @@ export async function ensureTopicPool(min = 6) {
   const cats = site.categories.map((c) => `${c.slug}: ${c.name} — ${c.desc}`).join("\n");
   const prompt = IS_EN
     ? `You are the content planner of "${site.name}", an English-language blog about Korea for a global audience.
-It is month ${month} now. Discover 12 blog topics about Korea (${site.niche}) that international
+Today is ${kst.toISOString().slice(0, 10)} (month ${month}). If a topic title includes a year,
+it MUST be the current year. Discover 12 blog topics about Korea (${site.niche}) that international
 readers will actually search for during month ${month}-${nextMonth}.
 
 [Categories]
@@ -111,7 +112,8 @@ ${cats}
 
 You MUST call the save_topics tool to store the result.`
     : `당신은 한국 ${site.niche} 블로그 "${site.name}"의 콘텐츠 기획자입니다.
-지금은 ${month}월입니다. ${month}월 하순~${nextMonth}월에 한국인이 실제로 많이 검색할
+오늘은 ${kst.toISOString().slice(0, 10)} (${month}월)입니다. 주제 제목에 연도를 넣을 경우
+반드시 현재 연도를 사용하세요(지난 연도 금지). ${month}월 하순~${nextMonth}월에 한국인이 실제로 많이 검색할
 ${site.niche} 주제 12개를 발굴하세요.
 
 [카테고리]

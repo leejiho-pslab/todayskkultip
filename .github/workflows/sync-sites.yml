@@ -1,0 +1,42 @@
+name: 멀티 사이트 코드 동기화
+
+# 이 레포(원본)의 코드 변경을 위성 사이트 레포(todayskkultip, jype)에 자동 반영한다.
+# - 콘텐츠/생성물/레포 고유 설정은 건드리지 않음 (automation/sync-sites.sh 참고)
+# - 동작 조건: Variables 에 SYNC_TARGETS, Secrets 에 SYNC_TOKEN(fine-grained PAT,
+#   대상 레포 Contents + Workflows 읽기/쓰기) 등록 시에만. 미등록이면 조용히 건너뜀.
+# - 위성 레포에도 이 파일이 복사되지만 SYNC_TARGETS 가 없어 실행되지 않는다.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    paths:
+      - "automation/**"
+      - "src/styles/**"
+      - "src/assets/brand/**"
+      - ".github/workflows/**"
+      - "docs/**"
+      - "package.json"
+      - "config/site.config.js"
+      - "config/profiles/**"
+      - "config/geo-checklist.json"
+      - "config/topics/*seasonal-topics.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "sync-sites"
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: ${{ vars.SYNC_TARGETS != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 위성 레포 코드 동기화
+        env:
+          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          SYNC_TARGETS: ${{ vars.SYNC_TARGETS }}
+        run: bash automation/sync-sites.sh

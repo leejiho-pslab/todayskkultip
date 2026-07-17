@@ -19,6 +19,12 @@ import { cropTop } from "./pngcrop.mjs";
 
 const ASSETS = path.join(ROOT, "src", "assets");
 const COVERS = path.join(ASSETS, "covers");
+// 브랜드 이미지(로고/OG/파비콘/프로필)는 프로필별 폴더에 — 빌드 시 현재 프로필 것으로 덮어씀.
+// default 프로필은 기존 경로 유지(하위 호환).
+const BRAND_DIR =
+  site.profile && site.profile !== "default"
+    ? path.join(ASSETS, "brand", site.profile)
+    : ASSETS;
 
 // Chrome 실행 파일 탐색
 function chromeBin() {
@@ -113,7 +119,7 @@ function genLogo() {
      align-items:center;justify-content:center;color:#fff;box-shadow:0 20px 60px rgba(37,99,235,.4)}
   .e{font-size:150px;line-height:1}.t{font-weight:900;font-size:74px;margin-top:6px;letter-spacing:-2px}
   </style></head><body><div class="box"><div class="c"><div class="e">${BM.emoji}</div><div class="t">${BM.logoWord}</div></div></div></body></html>`;
-  shoot(html, 512, 512, path.join(ASSETS, "logo.png"), true);
+  shoot(html, 512, 512, path.join(BRAND_DIR, "logo.png"), true);
 }
 
 // ---- 기본 OG (1200x630) ----
@@ -129,7 +135,7 @@ function genOgDefault() {
   </style></head><body><div class="bg"></div><div class="box"><div class="e">${BM.emoji}</div>
   <div class="t">${site.name}</div><div class="s">${site.tagline}</div>
   <div class="b">${(site.url||"").replace(/^https?:\/\//,"")}</div></div></body></html>`;
-  shoot(html, 1200, 630, path.join(ASSETS, "og-default.png"));
+  shoot(html, 1200, 630, path.join(BRAND_DIR, "og-default.png"));
 }
 
 // ---- 프로필 이미지 (1000x1000) ----
@@ -154,7 +160,7 @@ function genProfile() {
   <div class="box"><div class="e">${BM.emoji}</div>
   <div class="t1">${BM.line1}</div><div class="t2">${BM.line2}</div>
   <div class="chip">${BM.chip}</div></div></body></html>`;
-  shoot(html, 1000, 1000, path.join(ASSETS, "profile.png"));
+  shoot(html, 1000, 1000, path.join(BRAND_DIR, "profile.png"));
 }
 
 // ---- 파비콘 (SVG, 폰트 불필요) ----
@@ -163,11 +169,11 @@ function genFavicon() {
   <rect width="64" height="64" rx="14" fill="#2563eb"/>
   <text x="32" y="44" font-size="38" text-anchor="middle">${BM.emoji}</text></svg>`;
   ensureDir(ASSETS);
-  fs.writeFileSync(path.join(ASSETS, "favicon.svg"), svg, "utf8");
+  fs.writeFileSync(path.join(BRAND_DIR, "favicon.svg"), svg, "utf8");
   console.log("[images] 생성: src/assets/favicon.svg");
   // PNG 파비콘도 생성
   shoot(`<!doctype html><html><body style="margin:0">${svg.replace('width="64" height="64"','width="180" height="180"')}</body></html>`,
-    180, 180, path.join(ASSETS, "favicon.png"), true);
+    180, 180, path.join(BRAND_DIR, "favicon.png"), true);
 }
 
 // ---- 글 커버 (1200x630) ----

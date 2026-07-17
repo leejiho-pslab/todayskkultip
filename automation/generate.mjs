@@ -108,6 +108,7 @@ function buildPrompt(topic, notes) {
       : "";
     const targetWords = site.publishing.targetWords || 1400;
     return `You are the lead editor of "${site.name}", an English-language blog about Korea for a global audience.
+Today is ${todayKST()} (KST). Use the CURRENT year in titles and any year references — never a past year.
 Write an SEO-optimized blog article in natural, native ENGLISH on the topic below.
 
 [Topic] ${topic.title}
@@ -142,6 +143,8 @@ You MUST call the save_article tool to store the result.`;
     ? `\n${directives.join("\n")}\n(위 운영자 지침을 최우선으로 반영하세요.)\n`
     : "";
   return `당신은 한국의 ${site.niche} 블로그 "${site.name}"의 전문 에디터입니다.
+오늘은 ${todayKST()} 입니다. 제목·본문의 연도 표기는 반드시 현재 연도를 기준으로 하세요
+(지난 연도를 제목에 쓰지 말 것. 과거 기준 수치를 인용할 때만 "○○년 기준"으로 명시).
 아래 주제로 검색엔진 상위노출(SEO)에 최적화된 한국어 블로그 글을 작성하세요.
 
 [주제] ${topic.title}

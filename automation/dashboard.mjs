@@ -96,6 +96,57 @@ function collect() {
   const gh = site.github || {};
   const editUrl = `https://github.com/${gh.repo}/edit/${gh.branch}/config/requests.json`;
   const setupUrl = `https://github.com/${gh.repo}/blob/${gh.branch}/docs/SETUP.md`;
+  const revenueEditUrl = `https://github.com/${gh.repo}/edit/${gh.branch}/config/revenue.json`;
+
+  // ---- 기간별 발행 리포트 (일 30일 / 주 12주) ----
+  const now = nowKST();
+  const dayKey = (d) => d.toISOString().slice(0, 10);
+  const daily = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000);
+    const k = dayKey(d);
+    daily.push({ date: k, count: posts.filter((p) => p.date === k).length });
+  }
+  const weekly = [];
+  for (let i = 11; i >= 0; i--) {
+    const end = new Date(now.getTime() - i * 7 * 86400000);
+    const start = new Date(end.getTime() - 6 * 86400000);
+    const s = dayKey(start), e = dayKey(end);
+    weekly.push({
+      label: `${start.getMonth() + 1}/${start.getDate()}`,
+      count: posts.filter((p) => p.date >= s && p.date <= e).length,
+    });
+  }
+
+  // ---- 수익 기록 (운영자 수동 입력: config/revenue.json — 선택) ----
+  let revenueRecords = [];
+  try {
+    revenueRecords = readJson(path.join(ROOT, "config", "revenue.json")).records || [];
+  } catch { /* 파일 없으면 빈 상태 */ }
+  const revByMonth = {};
+  const revBySource = {};
+  let revTotal = 0;
+  for (const r of revenueRecords) {
+    const m = (r.date || "").slice(0, 7);
+    const amt = Number(r.amount) || 0;
+    if (!m) continue;
+    revByMonth[m] = (revByMonth[m] || 0) + amt;
+    revBySource[r.source || "기타"] = (revBySource[r.source || "기타"] || 0) + amt;
+    revTotal += amt;
+  }
+
+  // ---- 주제 풀 모니터링 (소진 예측) ----
+  const pool = pickTopics(999);
+  const poolByCat = {};
+  for (const t of pool) poolByCat[t.category] = (poolByCat[t.category] || 0) + 1;
+  const poolDays = postsPerDay ? Math.floor(pool.length / postsPerDay) : 0;
+
+  // ---- 멀티 사이트 현황 ----
+  const sites = [
+    { key: "default", name: "오늘의 꿀팁", url: "https://starship-ent.ai.kr", niche: "생활정보/꿀팁 · 한국어", repo: "leejiho-pslab/site" },
+    { key: "kkultip", name: "오늘의 머니꿀팁", url: "https://todayskkultip.co.kr", niche: "재테크·금융 · 한국어", repo: "leejiho-pslab/todayskkultip" },
+    { key: "jype", name: "Korea Unboxed", url: "https://jype.ai.kr", niche: "K-culture · 영어(해외)", repo: "leejiho-pslab/jype" },
+  ].map((s) => ({ ...s, current: s.key === (site.profile || "default") }));
 
   // ---- 채널별 데이터 ----
   const env = process.env;
@@ -247,6 +298,26 @@ function collect() {
     generatedAt: todayKST(),
     editUrl,
     setupUrl,
+    revenueEditUrl,
+    // 사이트 간 교차 표시용 요약 — 다른 사이트 대시보드가 이 data.json 을 fetch 해 사용
+    summary: {
+      profile: site.profile || "default",
+      name: site.name,
+      url: site.url,
+      lang: site.lang,
+      totalPosts: posts.length,
+      last7d: daily.slice(-7).reduce((a, x) => a + x.count, 0),
+      bloggerPublished,
+      poolTotal: pool.length,
+      poolDays,
+      generatedAt: todayKST(),
+    },
+    report: {
+      daily, weekly,
+      revenue: { records: revenueRecords, byMonth: revByMonth, bySource: revBySource, total: revTotal },
+      poolByCat, poolTotal: pool.length, poolDays,
+    },
+    sites,
     channels,
     activeChannels,
     setup,
@@ -321,6 +392,13 @@ a{color:var(--ac)}
 .linkrow a{background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:7px 12px;text-decoration:none}
 .chcard{cursor:pointer;transition:border-color .15s}.chcard:hover{border-color:var(--ac)}
 .note{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:12px 14px;font-size:14px;margin-top:12px}
+.warn{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.3);border-radius:10px;padding:12px 14px;font-size:14px;margin-top:12px}
+.vbars{display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:12px}
+.vbars .vb{flex:1;min-width:4px;background:linear-gradient(180deg,#38bdf8,#2563eb);border-radius:3px 3px 0 0;position:relative}
+.vbars .vb.zero{background:#0b1220;border:1px dashed var(--line)}
+.vaxis{display:flex;justify-content:space-between;color:var(--mut);font-size:11px;margin-top:6px}
+.sitecard{border-left:3px solid var(--ac)}
+.sitecard.cur{border-left-color:var(--ok)}
 `;
 
 function bars(obj, nameFn) {
@@ -354,6 +432,17 @@ function scheduleTable(plan) {
         <td><span class="badge ${t.source === "운영자 요청" ? "b-manual" : "b-auto"}">${esc(t.source)}</span></td></tr>`
     ).join("") + `</tbody></table>`;
 }
+// 세로 막대 차트 (일별/주별 발행) — 외부 라이브러리 없이 div 로
+function vbarChart(items, labelFn) {
+  const max = Math.max(1, ...items.map((x) => x.count));
+  const bars = items.map((x) => {
+    const h = x.count ? Math.max(8, Math.round((x.count / max) * 100)) : 2;
+    return `<div class="vb ${x.count ? "" : "zero"}" style="height:${h}%" title="${esc(labelFn(x))}: ${x.count}편"></div>`;
+  }).join("");
+  return `<div class="vbars">${bars}</div>
+    <div class="vaxis"><span>${esc(labelFn(items[0]))}</span><span>${esc(labelFn(items[items.length - 1]))}</span></div>`;
+}
+
 // 설정/상태 목록
 function setRows(arr) {
   return arr.map((s) =>
@@ -389,20 +478,48 @@ function render(d) {
       <span class="mini">${c.catDone}/${c.catTotal} (${pct}%)</span></summary>${rows}</details>`;
   }).join("");
 
+  // 사이트 3개 실시간 카드 — 현재 사이트는 빌드 데이터로, 다른 사이트는
+  // 해당 도메인의 /dashboard/data.json 을 브라우저에서 fetch 해 채운다
+  const sm = d.summary;
+  const siteCards = d.sites.map((s) => {
+    const cur = s.current;
+    return `
+    <div class="card sitecard ${cur ? "cur" : "sitefetch"}" data-url="${esc(s.url)}">
+      <div class="label">${cur ? "● 지금 보는 사이트" : "🌐 위성 사이트"} · ${esc(s.niche)}</div>
+      <div style="font-weight:800;font-size:18px">${esc(s.name)}</div>
+      <div class="chl" style="margin:10px 0 4px">
+        <span class="s-posts">${cur ? `발행 ${sm.totalPosts}편` : "…"}</span>
+        <span class="s-week">${cur ? `최근7일 ${sm.last7d}편` : "…"}</span>
+        <span class="s-pool">${cur ? `남은주제 ${sm.poolTotal}개` : "…"}</span>
+      </div>
+      <div style="margin-top:6px"><span class="s-status badge ${cur ? "b-done" : "b-na"}">${cur ? "정상 운영" : "확인 중…"}</span></div>
+      <div class="linkrow">
+        <a href="${esc(s.url)}/" target="_blank">사이트</a>
+        <a href="${esc(s.url)}/dashboard/" target="_blank">대시보드</a>
+        <a href="https://github.com/${esc(s.repo)}/actions" target="_blank">실행 로그</a>
+      </div>
+    </div>`;
+  }).join("");
+
   // ===== 탭1: 전체 =====
   const overview = `
 <div class="grid cols">
+  <div class="card"><div class="label">총 발행 글</div>
+    <div class="kpi">${d.publishing.totalPosts}<small> 편</small></div></div>
+  <div class="card"><div class="label">최근 7일 발행</div>
+    <div class="kpi">${sm.last7d}<small> 편</small></div></div>
   <div class="card"><div class="label">SEO·GEO 진척도</div>
     <div class="kpi">${p.pct}%<small> ${p.done}/${p.total}</small></div>
     <div class="bar"><span style="width:${p.pct}%"></span></div></div>
   <div class="card"><div class="label">자동 검사 통과</div>
     <div class="kpi">${p.autoPass}<small>/${p.autoTotal}</small></div>
     <div class="bar"><span style="width:${p.autoTotal ? Math.round(p.autoPass/p.autoTotal*100):0}%"></span></div></div>
-  <div class="card"><div class="label">총 발행 글</div>
-    <div class="kpi">${d.publishing.totalPosts}<small> 편</small></div></div>
   <div class="card"><div class="label">활성 채널</div>
     <div class="kpi">${d.activeChannels}<small> / 4</small></div></div>
 </div>
+
+<section><h2>🌍 사이트 3개 한눈에 <span class="mini">(위성 사이트 숫자는 실시간 조회)</span></h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">${siteCards}</div></section>
 
 <section><h2>📡 채널별 현황 <span class="mini">(연결 우선순위: 네이버 → 블로거 → 워드프레스 → 광고사이트)</span></h2>
   <div class="grid cols">
@@ -479,6 +596,73 @@ function render(d) {
 
 <section><h2>📅 월별 발행 추이</h2>
   <div class="card">${Object.keys(d.publishing.byMonth).length ? bars(d.publishing.byMonth) : "<div class=mini>데이터 없음</div>"}</div></section>`;
+
+  // ===== 탭: 리포트 (기간별 발행·수익·주제 풀) =====
+  const rp = d.report;
+  const srcName = { adsense: "애드센스", coupang: "쿠팡 파트너스", naverConnect: "쇼핑커넥트", adpost: "애드포스트" };
+  const revMonths = Object.keys(rp.revenue.byMonth).sort().reverse();
+  const reportTab = `
+<div class="grid cols">
+  <div class="card"><div class="label">최근 7일 발행</div>
+    <div class="kpi">${rp.daily.slice(-7).reduce((a, x) => a + x.count, 0)}<small> 편</small></div></div>
+  <div class="card"><div class="label">최근 30일 발행</div>
+    <div class="kpi">${rp.daily.reduce((a, x) => a + x.count, 0)}<small> 편</small></div></div>
+  <div class="card"><div class="label">누적 발행</div>
+    <div class="kpi">${d.publishing.totalPosts}<small> 편</small></div></div>
+  <div class="card"><div class="label">기록된 수익 합계</div>
+    <div class="kpi">${rp.revenue.total ? rp.revenue.total.toLocaleString("ko-KR") : "—"}<small>${rp.revenue.total ? " 원" : " 기록 없음"}</small></div></div>
+</div>
+
+<section><h2>📈 기간별 발행 추이</h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+    <div class="card"><div class="label">일별 (최근 30일)</div>${vbarChart(rp.daily, (x) => x.date.slice(5))}</div>
+    <div class="card"><div class="label">주별 (최근 12주 · 주 시작일)</div>${vbarChart(rp.weekly, (x) => x.label)}</div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="label">월별 누적</div>
+    ${Object.keys(d.publishing.byMonth).length ? bars(d.publishing.byMonth) : "<div class=mini>데이터 없음</div>"}</div></section>
+
+<section><h2>💰 수익 현황 (기간별)</h2>
+  <div class="sub">애드센스 승인 전에는 수익 데이터가 없습니다. 승인 후 각 채널 보고서에서 확인한 금액을
+    <a href="${esc(d.revenueEditUrl)}" target="_blank">✏️ config/revenue.json 에 기록</a>하면 여기에 월별·채널별로 집계됩니다(선택 사항).</div>
+  <div class="linkrow">
+    <a href="https://adsense.google.com" target="_blank">애드센스 보고서 ↗</a>
+    <a href="https://partners.coupang.com" target="_blank">쿠팡 파트너스 실적 ↗</a>
+    <a href="https://brandconnect.naver.com" target="_blank">쇼핑커넥트(브랜드커넥트) ↗</a>
+    <a href="https://analytics.google.com" target="_blank">GA4 트래픽 ↗</a>
+  </div>
+  ${revMonths.length ? `
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-top:16px">
+    <div class="card"><div class="label">월별 수익(기록 기준)</div>
+      <table><thead><tr><th>월</th><th style="text-align:right">금액(원)</th></tr></thead><tbody>
+      ${revMonths.map((m) => `<tr><td>${esc(m)}</td><td style="text-align:right">${rp.revenue.byMonth[m].toLocaleString("ko-KR")}</td></tr>`).join("")}
+      </tbody></table></div>
+    <div class="card"><div class="label">채널별 수익(기록 기준)</div>
+      ${bars(Object.fromEntries(Object.entries(rp.revenue.bySource).map(([k, v]) => [srcName[k] || k, v])))}</div>
+  </div>` : `<div class="note" style="margin-top:14px">아직 수익 기록이 없습니다. 수익이 발생하기 시작하면
+    위 ✏️ 링크에서 <code>records</code> 배열에 한 줄씩 추가하세요 —
+    예: <code>{"date":"2026-08-31","source":"adsense","amount":12340}</code></div>`}
+</section>
+
+<section><h2>🧠 주제 풀 모니터링</h2>
+  <div class="sub">남은 주제가 하루 발행량(${d.postsPerDayInfo}편) 기준 6편 미만이 되면 발행 시 Claude 가 자동으로 12개를 보충합니다(topic-generate).</div>
+  <div class="grid cols">
+    <div class="card"><div class="label">남은 주제</div><div class="kpi">${rp.poolTotal}<small> 개</small></div></div>
+    <div class="card"><div class="label">예상 커버 기간</div><div class="kpi">${rp.poolDays}<small> 일치</small></div></div>
+    <div class="card"><div class="label">자동 보충</div><div class="kpi" style="font-size:22px">활성화</div>
+      <div class="chl"><span>부족 시 12개 자동 발굴</span></div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="label">카테고리별 남은 주제</div>
+    ${Object.keys(rp.poolByCat).length
+      ? Object.entries(rp.poolByCat).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+          `<div class="row"><span>${esc(catName(k))}</span><span>${v}개</span></div>`).join("")
+      : "<div class=mini>남은 주제 없음 — 다음 발행 시 자동 보충됩니다.</div>"}
+  </div>
+  ${rp.poolDays < 3 ? `<div class="warn">⚠️ 주제 풀이 ${rp.poolDays}일치 남았습니다. 자동 보충이 동작하지만, 원하는 주제가 있다면 <a href="${esc(d.editUrl)}" target="_blank">requests.json</a> 에 직접 등록해 두세요.</div>` : ""}
+</section>
+
+<section><h2>🗓 발행 계획 (다음 12편)</h2>
+  <div class="card">${scheduleTable(d.plan)}</div>
+  ${planDownloads}</section>`;
 
   // ===== 탭2: 자체 사이트 =====
   const siteTab = `
@@ -650,6 +834,8 @@ ${scheduleSection()}
       <code>github.io</code> 하위 주소(현재 주소)로는 신청 자체가 불가합니다. 도메인 구매(연 1~2만원) 후
       <a href="${esc(d.setupUrl)}" target="_blank">SETUP STEP 10</a>대로 연결하고 신청하세요.<br>
       콘텐츠 요건(20편+)은 이미 충족했으므로, <b>도메인 연결이 유일하게 남은 관문</b>입니다.<br>
+      💡 <b>승인 후 수익 극대화</b>: AdSense → 광고 → 사이트별 설정에서 <b>자동 광고 ON + 앵커 광고·전면 광고 허용</b>으로 두세요
+      (본문 광고 자리는 코드에 이미 준비됨 — 승인 후 슬롯 ID 4종을 등록하면 수동 배치까지 활성화됩니다).<br>
       (대안: 구글 블로거는 애드센스 '호스트 파트너'라 blogspot 주소 그대로 승인 신청이 가능합니다 — 단, 그 승인은 해당 블로그에만 적용됩니다.)<br>
       가입: <a href="https://adsense.google.com" target="_blank">adsense.google.com</a></div>
   </div></section>
@@ -687,6 +873,7 @@ ${scheduleSection()}
 
 <div class="tabs">
   <button data-tab="all" onclick="showTab('all',this)">📊 전체</button>
+  <button data-tab="report" onclick="showTab('report',this)">📈 리포트</button>
   <button data-tab="naver" onclick="showTab('naver',this)">🟢 네이버 블로그 · 1순위</button>
   <button data-tab="blogger" onclick="showTab('blogger',this)">📝 구글 블로거 · 2순위</button>
   <button data-tab="wordpress" onclick="showTab('wordpress',this)">🔵 워드프레스 · 3순위</button>
@@ -695,6 +882,7 @@ ${scheduleSection()}
 </div>
 
 <div id="t-all" class="panel">${overview}</div>
+<div id="t-report" class="panel">${reportTab}</div>
 <div id="t-naver" class="panel">${naverTab}</div>
 <div id="t-blogger" class="panel">${bloggerTab}</div>
 <div id="t-wordpress" class="panel">${wpTab}</div>
@@ -713,6 +901,25 @@ function showTab(key, btn){
 document.addEventListener('DOMContentLoaded',function(){
   var h=(location.hash||'').replace('#','');
   showTab(document.querySelector('.tabs button[data-tab="'+h+'"]') ? h : 'all');
+  // 위성 사이트 실시간 현황 조회 (해당 도메인의 /dashboard/data.json)
+  document.querySelectorAll('.sitefetch').forEach(function(el){
+    var base=el.getAttribute('data-url');
+    fetch(base+'/dashboard/data.json',{cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error(r.status); return r.json();
+    }).then(function(j){
+      var s=j.summary||{};
+      el.querySelector('.s-posts').textContent='발행 '+(s.totalPosts!=null?s.totalPosts:'?')+'편';
+      el.querySelector('.s-week').textContent='최근7일 '+(s.last7d!=null?s.last7d:'?')+'편';
+      el.querySelector('.s-pool').textContent='남은주제 '+(s.poolTotal!=null?s.poolTotal:'?')+'개';
+      var st=el.querySelector('.s-status');
+      st.textContent='정상 운영 · 갱신 '+(s.generatedAt||'');
+      st.className='s-status badge b-done';
+    }).catch(function(){
+      var st=el.querySelector('.s-status');
+      st.textContent='접속 대기 (DNS 연결 전)';
+      st.className='s-status badge b-todo';
+    });
+  });
 });
 </script>
 </div></body></html>`;
