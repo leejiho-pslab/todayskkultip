@@ -1,65 +1,428 @@
 {
   "1": [
-    { "title": "How Koreans Celebrate Seollal (Lunar New Year): Food, Customs, and What to Expect", "category": "culture", "keywords": ["seollal", "korean lunar new year", "korean holidays"] },
-    { "title": "Best Korean Winter Foods to Try: From Hotteok to Bungeoppang", "category": "food", "keywords": ["korean winter food", "korean street food", "hotteok"] },
-    { "title": "Skiing in Korea: Best Resorts Near Seoul for Beginners", "category": "travel", "keywords": ["korea ski resorts", "skiing near seoul"] }
+    {
+      "title": "How Koreans Celebrate Seollal (Lunar New Year): Food, Customs, and What to Expect",
+      "category": "culture",
+      "keywords": [
+        "seollal",
+        "korean lunar new year",
+        "korean holidays"
+      ]
+    },
+    {
+      "title": "Best Korean Winter Foods to Try: From Hotteok to Bungeoppang",
+      "category": "food",
+      "keywords": [
+        "korean winter food",
+        "korean street food",
+        "hotteok"
+      ]
+    },
+    {
+      "title": "Skiing in Korea: Best Resorts Near Seoul for Beginners",
+      "category": "travel",
+      "keywords": [
+        "korea ski resorts",
+        "skiing near seoul"
+      ]
+    }
   ],
   "2": [
-    { "title": "Valentine's Day in Korea: Why There Are Three Romance Holidays", "category": "culture", "keywords": ["valentines day korea", "white day", "korean dating culture"] },
-    { "title": "K-Pop Comeback Season Explained: How Comebacks Actually Work", "category": "entertainment", "keywords": ["kpop comeback", "kpop terminology"] },
-    { "title": "What to Pack for Korea in Winter: A Realistic Checklist", "category": "travel", "keywords": ["korea winter packing", "seoul winter trip"] }
+    {
+      "title": "Valentine's Day in Korea: Why There Are Three Romance Holidays",
+      "category": "culture",
+      "keywords": [
+        "valentines day korea",
+        "white day",
+        "korean dating culture"
+      ]
+    },
+    {
+      "title": "K-Pop Comeback Season Explained: How Comebacks Actually Work",
+      "category": "entertainment",
+      "keywords": [
+        "kpop comeback",
+        "kpop terminology"
+      ]
+    },
+    {
+      "title": "What to Pack for Korea in Winter: A Realistic Checklist",
+      "category": "travel",
+      "keywords": [
+        "korea winter packing",
+        "seoul winter trip"
+      ]
+    }
   ],
   "3": [
-    { "title": "Cherry Blossom Season in Korea: 2026 Forecast and Best Viewing Spots", "category": "travel", "keywords": ["korea cherry blossom", "cherry blossom forecast", "jinhae festival"] },
-    { "title": "Korean Convenience Store Food Ranked: What to Actually Buy at CU and GS25", "category": "food", "keywords": ["korean convenience store", "cu gs25 food"] },
-    { "title": "How Korean School Life Really Works: Semesters, Hagwons, and School Food", "category": "culture", "keywords": ["korean school system", "hagwon"] }
+    {
+      "title": "Cherry Blossom Season in Korea: 2026 Forecast and Best Viewing Spots",
+      "category": "travel",
+      "keywords": [
+        "korea cherry blossom",
+        "cherry blossom forecast",
+        "jinhae festival"
+      ]
+    },
+    {
+      "title": "Korean Convenience Store Food Ranked: What to Actually Buy at CU and GS25",
+      "category": "food",
+      "keywords": [
+        "korean convenience store",
+        "cu gs25 food"
+      ]
+    },
+    {
+      "title": "How Korean School Life Really Works: Semesters, Hagwons, and School Food",
+      "category": "culture",
+      "keywords": [
+        "korean school system",
+        "hagwon"
+      ]
+    }
   ],
   "4": [
-    { "title": "Seoul 3-Day Itinerary for First-Timers: Palaces, Markets, and Han River", "category": "travel", "keywords": ["seoul itinerary", "3 days in seoul", "first time seoul"] },
-    { "title": "K-Drama Filming Locations You Can Actually Visit", "category": "entertainment", "keywords": ["kdrama filming locations", "kdrama tour"] },
-    { "title": "Korean Spring Snacks and Picnic Culture on the Han River", "category": "food", "keywords": ["han river picnic", "korean picnic food"] }
+    {
+      "title": "Seoul 3-Day Itinerary for First-Timers: Palaces, Markets, and Han River",
+      "category": "travel",
+      "keywords": [
+        "seoul itinerary",
+        "3 days in seoul",
+        "first time seoul"
+      ]
+    },
+    {
+      "title": "K-Drama Filming Locations You Can Actually Visit",
+      "category": "entertainment",
+      "keywords": [
+        "kdrama filming locations",
+        "kdrama tour"
+      ]
+    },
+    {
+      "title": "Korean Spring Snacks and Picnic Culture on the Han River",
+      "category": "food",
+      "keywords": [
+        "han river picnic",
+        "korean picnic food"
+      ]
+    }
   ],
   "5": [
-    { "title": "Visiting Korea in May: Festivals, Weather, and What Locals Do", "category": "travel", "keywords": ["korea in may", "korea festivals"] },
-    { "title": "Korean BBQ for Beginners: How to Order and Grill Like a Local", "category": "food", "keywords": ["korean bbq guide", "how to eat korean bbq", "samgyeopsal"] },
-    { "title": "Why Korean Skincare Routines Go Viral: The 10-Step Routine Explained", "category": "trends", "keywords": ["korean skincare", "10 step routine", "k-beauty"] }
+    {
+      "title": "Visiting Korea in May: Festivals, Weather, and What Locals Do",
+      "category": "travel",
+      "keywords": [
+        "korea in may",
+        "korea festivals"
+      ]
+    },
+    {
+      "title": "Korean BBQ for Beginners: How to Order and Grill Like a Local",
+      "category": "food",
+      "keywords": [
+        "korean bbq guide",
+        "how to eat korean bbq",
+        "samgyeopsal"
+      ]
+    },
+    {
+      "title": "Why Korean Skincare Routines Go Viral: The 10-Step Routine Explained",
+      "category": "trends",
+      "keywords": [
+        "korean skincare",
+        "10 step routine",
+        "k-beauty"
+      ]
+    }
   ],
   "6": [
-    { "title": "Korea's Rainy Season (Jangma): When It Hits and How to Plan Around It", "category": "travel", "keywords": ["korea rainy season", "jangma", "korea june weather"] },
-    { "title": "Korean Summer Noodles: Naengmyeon, Kongguksu, and Where to Eat Them", "category": "food", "keywords": ["naengmyeon", "korean cold noodles"] },
-    { "title": "How K-Pop Fandoms Work: Lightsticks, Fan Cafes, and Comeback Streaming", "category": "entertainment", "keywords": ["kpop fandom", "lightstick", "fan cafe"] }
+    {
+      "title": "Korea's Rainy Season (Jangma): When It Hits and How to Plan Around It",
+      "category": "travel",
+      "keywords": [
+        "korea rainy season",
+        "jangma",
+        "korea june weather"
+      ]
+    },
+    {
+      "title": "Korean Summer Noodles: Naengmyeon, Kongguksu, and Where to Eat Them",
+      "category": "food",
+      "keywords": [
+        "naengmyeon",
+        "korean cold noodles"
+      ]
+    },
+    {
+      "title": "How K-Pop Fandoms Work: Lightsticks, Fan Cafes, and Comeback Streaming",
+      "category": "entertainment",
+      "keywords": [
+        "kpop fandom",
+        "lightstick",
+        "fan cafe"
+      ]
+    }
   ],
   "7": [
-    { "title": "Surviving a Korean Summer: Heat, Humidity, and the Best Ways to Cool Down", "category": "travel", "keywords": ["korea summer", "seoul july weather", "korea heat wave"] },
-    { "title": "Chimaek Culture: Why Korean Fried Chicken and Beer Is a National Ritual", "category": "food", "keywords": ["chimaek", "korean fried chicken"] },
-    { "title": "Boryeong Mud Festival Guide: Tickets, Access from Seoul, and Tips", "category": "travel", "keywords": ["boryeong mud festival", "korea summer festival"] },
-    { "title": "Korean Summer Trends Right Now: What's Selling Out in Seoul", "category": "trends", "keywords": ["korea trends", "seoul trends", "viral korea"] },
-    { "title": "Bingsu 101: Korea's Shaved Ice Dessert and the Best Toppings", "category": "food", "keywords": ["bingsu", "korean dessert"] }
+    {
+      "title": "Surviving a Korean Summer: Heat, Humidity, and the Best Ways to Cool Down",
+      "category": "travel",
+      "keywords": [
+        "korea summer",
+        "seoul july weather",
+        "korea heat wave"
+      ]
+    },
+    {
+      "title": "Chimaek Culture: Why Korean Fried Chicken and Beer Is a National Ritual",
+      "category": "food",
+      "keywords": [
+        "chimaek",
+        "korean fried chicken"
+      ]
+    },
+    {
+      "title": "Boryeong Mud Festival Guide: Tickets, Access from Seoul, and Tips",
+      "category": "travel",
+      "keywords": [
+        "boryeong mud festival",
+        "korea summer festival"
+      ]
+    },
+    {
+      "title": "Korean Summer Trends Right Now: What's Selling Out in Seoul",
+      "category": "trends",
+      "keywords": [
+        "korea trends",
+        "seoul trends",
+        "viral korea"
+      ]
+    },
+    {
+      "title": "Bingsu 101: Korea's Shaved Ice Dessert and the Best Toppings",
+      "category": "food",
+      "keywords": [
+        "bingsu",
+        "korean dessert"
+      ]
+    },
+    {
+      "title": "How to Audition for JYP Entertainment in 2026: Requirements, Online Auditions, and Tips",
+      "category": "entertainment",
+      "keywords": [
+        "jyp audition",
+        "jyp entertainment audition",
+        "how to become a kpop idol"
+      ]
+    },
+    {
+      "title": "Stray Kids Concert Tickets: How International Fans Can Actually Get Them",
+      "category": "entertainment",
+      "keywords": [
+        "stray kids tickets",
+        "stray kids tour",
+        "kpop concert tickets"
+      ]
+    }
   ],
   "8": [
-    { "title": "Busan Beach Guide: Haeundae vs Gwangalli and What to Eat Nearby", "category": "travel", "keywords": ["busan beaches", "haeundae", "gwangalli"] },
-    { "title": "K-Drama Binge List: The Series Everyone in Korea Is Talking About", "category": "entertainment", "keywords": ["best kdramas", "kdrama recommendations"] },
-    { "title": "Korean Café Culture: Why Seoul Has a Themed Café on Every Corner", "category": "culture", "keywords": ["seoul cafes", "korean cafe culture"] },
-    { "title": "Using the T-money Card: Korea's Public Transport for Foreigners", "category": "travel", "keywords": ["t-money card", "korea public transport", "seoul subway"] }
+    {
+      "title": "Busan Beach Guide: Haeundae vs Gwangalli and What to Eat Nearby",
+      "category": "travel",
+      "keywords": [
+        "busan beaches",
+        "haeundae",
+        "gwangalli"
+      ]
+    },
+    {
+      "title": "K-Drama Binge List: The Series Everyone in Korea Is Talking About",
+      "category": "entertainment",
+      "keywords": [
+        "best kdramas",
+        "kdrama recommendations"
+      ]
+    },
+    {
+      "title": "Korean Café Culture: Why Seoul Has a Themed Café on Every Corner",
+      "category": "culture",
+      "keywords": [
+        "seoul cafes",
+        "korean cafe culture"
+      ]
+    },
+    {
+      "title": "Using the T-money Card: Korea's Public Transport for Foreigners",
+      "category": "travel",
+      "keywords": [
+        "t-money card",
+        "korea public transport",
+        "seoul subway"
+      ]
+    },
+    {
+      "title": "ITZY vs NMIXX: A New Fan's Guide to JYP's Girl Groups",
+      "category": "entertainment",
+      "keywords": [
+        "itzy",
+        "nmixx",
+        "jyp girl groups"
+      ]
+    },
+    {
+      "title": "How K-pop Trainee Life Really Works: Auditions, Training, and Debut Explained",
+      "category": "entertainment",
+      "keywords": [
+        "kpop trainee",
+        "kpop trainee life",
+        "idol training"
+      ]
+    },
+    {
+      "title": "Visiting JYP Entertainment's Building in Seoul: Location, Photo Spots, and Fan Etiquette",
+      "category": "entertainment",
+      "keywords": [
+        "jyp building",
+        "jyp entertainment seoul",
+        "kpop agency tour"
+      ]
+    }
   ],
   "9": [
-    { "title": "Chuseok Explained: Korea's Thanksgiving, Traffic Jams and Holiday Food", "category": "culture", "keywords": ["chuseok", "korean thanksgiving", "songpyeon"] },
-    { "title": "Autumn in Korea: Where to See the Best Fall Foliage", "category": "travel", "keywords": ["korea fall foliage", "autumn in korea", "naejangsan"] },
-    { "title": "Korean Street Food Tour: What to Eat at Gwangjang Market", "category": "food", "keywords": ["gwangjang market", "korean street food"] }
+    {
+      "title": "Chuseok Explained: Korea's Thanksgiving, Traffic Jams and Holiday Food",
+      "category": "culture",
+      "keywords": [
+        "chuseok",
+        "korean thanksgiving",
+        "songpyeon"
+      ]
+    },
+    {
+      "title": "Autumn in Korea: Where to See the Best Fall Foliage",
+      "category": "travel",
+      "keywords": [
+        "korea fall foliage",
+        "autumn in korea",
+        "naejangsan"
+      ]
+    },
+    {
+      "title": "Korean Street Food Tour: What to Eat at Gwangjang Market",
+      "category": "food",
+      "keywords": [
+        "gwangjang market",
+        "korean street food"
+      ]
+    },
+    {
+      "title": "TWICE Discography Timeline: Every Era Explained for New Fans",
+      "category": "entertainment",
+      "keywords": [
+        "twice discography",
+        "twice albums",
+        "twice eras"
+      ]
+    },
+    {
+      "title": "How to Buy Official K-pop Lightsticks and Merch from Abroad (Without Getting Scammed)",
+      "category": "entertainment",
+      "keywords": [
+        "kpop lightstick",
+        "official kpop merch",
+        "buy kpop merch abroad"
+      ]
+    },
+    {
+      "title": "K-pop Fan Sign Events Explained: How to Enter, Costs, and What to Expect",
+      "category": "entertainment",
+      "keywords": [
+        "kpop fansign",
+        "fan call event",
+        "how to enter fansign"
+      ]
+    }
   ],
   "10": [
-    { "title": "Seoul in October: Fireworks Festival, Fall Weather, and Day Trips", "category": "travel", "keywords": ["seoul october", "seoul fireworks festival"] },
-    { "title": "How Halloween Became Huge in Korean Pop Culture", "category": "trends", "keywords": ["halloween korea", "itaewon"] },
-    { "title": "Korean Words Every K-Drama Fan Already Knows (And What They Really Mean)", "category": "culture", "keywords": ["korean words", "kdrama phrases", "learn korean"] }
+    {
+      "title": "Seoul in October: Fireworks Festival, Fall Weather, and Day Trips",
+      "category": "travel",
+      "keywords": [
+        "seoul october",
+        "seoul fireworks festival"
+      ]
+    },
+    {
+      "title": "How Halloween Became Huge in Korean Pop Culture",
+      "category": "trends",
+      "keywords": [
+        "halloween korea",
+        "itaewon"
+      ]
+    },
+    {
+      "title": "Korean Words Every K-Drama Fan Already Knows (And What They Really Mean)",
+      "category": "culture",
+      "keywords": [
+        "korean words",
+        "kdrama phrases",
+        "learn korean"
+      ]
+    }
   ],
   "11": [
-    { "title": "Pepero Day and Korea's Quirky Unofficial Holidays", "category": "culture", "keywords": ["pepero day", "korean holidays"] },
-    { "title": "Korean Winter Street Food Season Begins: What to Look For", "category": "food", "keywords": ["korean winter street food", "roasted sweet potato"] },
-    { "title": "College Entrance Exam Day (Suneung): The Day Korea Goes Silent", "category": "culture", "keywords": ["suneung", "korean sat", "korea exam day"] }
+    {
+      "title": "Pepero Day and Korea's Quirky Unofficial Holidays",
+      "category": "culture",
+      "keywords": [
+        "pepero day",
+        "korean holidays"
+      ]
+    },
+    {
+      "title": "Korean Winter Street Food Season Begins: What to Look For",
+      "category": "food",
+      "keywords": [
+        "korean winter street food",
+        "roasted sweet potato"
+      ]
+    },
+    {
+      "title": "College Entrance Exam Day (Suneung): The Day Korea Goes Silent",
+      "category": "culture",
+      "keywords": [
+        "suneung",
+        "korean sat",
+        "korea exam day"
+      ]
+    }
   ],
   "12": [
-    { "title": "Christmas and New Year in Seoul: What's Open and Where to Go", "category": "travel", "keywords": ["christmas in seoul", "new year korea"] },
-    { "title": "Korean Year-End Award Shows Explained: MAMA, MMA, and the Daesang", "category": "entertainment", "keywords": ["kpop award shows", "mama awards", "daesang"] },
-    { "title": "Jeju Island in Winter: Tangerine Season and Quiet-Season Perks", "category": "travel", "keywords": ["jeju winter", "jeju tangerine"] }
+    {
+      "title": "Christmas and New Year in Seoul: What's Open and Where to Go",
+      "category": "travel",
+      "keywords": [
+        "christmas in seoul",
+        "new year korea"
+      ]
+    },
+    {
+      "title": "Korean Year-End Award Shows Explained: MAMA, MMA, and the Daesang",
+      "category": "entertainment",
+      "keywords": [
+        "kpop award shows",
+        "mama awards",
+        "daesang"
+      ]
+    },
+    {
+      "title": "Jeju Island in Winter: Tangerine Season and Quiet-Season Perks",
+      "category": "travel",
+      "keywords": [
+        "jeju winter",
+        "jeju tangerine"
+      ]
+    }
   ]
 }

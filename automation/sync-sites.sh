@@ -51,8 +51,32 @@ for repo in $SYNC_TARGETS; do
   for f in "$SRC"/config/topics/*seasonal-topics.json; do
     cp "$f" "$dir/config/topics/$(basename "$f")"
   done
+  # ---- 콘텐츠 동기화 (원본에서 '해당 프로필로 생성된 글'만 전달) ----
+  # 원본 레포에서 SITE_PROFILE=<위성 프로필> 로 대량 생성한 글을 위성 레포에 밀어넣는다.
+  # 위성이 자체 생성한 글은 삭제하지 않음(추가/갱신만).
+  case "$repo" in
+    */todayskkultip) profile="kkultip" ;;
+    */jype)          profile="jype" ;;
+    *)               profile="" ;;
+  esac
+  if [ -n "$profile" ]; then
+    mkdir -p "$dir/content/posts" "$dir/src/assets/covers"
+    copied=0
+    for f in "$SRC"/content/posts/*.md; do
+      [ -e "$f" ] || continue
+      grep -q "^profile: ${profile}$" "$f" || continue
+      cp "$f" "$dir/content/posts/$(basename "$f")"
+      slug="$(grep -m1 '^slug: ' "$f" | sed 's/^slug: //' | tr -d "'\"" | tr -d '[:space:]')"
+      if [ -n "$slug" ]; then
+        cp "$SRC"/src/assets/covers/"$slug"*.png "$dir/src/assets/covers/" 2>/dev/null || true
+      fi
+      copied=$((copied+1))
+    done
+    echo "[sync] $repo — 콘텐츠 ${copied}편 전달"
+  fi
+
   # ---- 보존되는 레포 고유 데이터 (건드리지 않음) ----
-  #   content/posts/**, src/assets/covers/**, src/assets/(기본 브랜드),
+  #   위성이 자체 생성한 content/posts/**, src/assets/covers/**, src/assets/(기본 브랜드),
   #   config/topics/*generated-topics.json, config/requests.json, config/revenue.json, CLAUDE.md
 
   cd "$dir"

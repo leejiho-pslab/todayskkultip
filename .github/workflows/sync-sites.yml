@@ -12,6 +12,7 @@ on:
     branches: ["**"]
     paths:
       - "automation/**"
+      - "content/posts/**"
       - "src/styles/**"
       - "src/assets/brand/**"
       - ".github/workflows/**"

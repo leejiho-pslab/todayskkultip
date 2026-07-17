@@ -23,8 +23,11 @@ export default {
     author: "Korea Unboxed Editorial Team",
 
     niche: "Korean culture, travel & trends",
+    // 사칭·혼동 방지 고지 — 도메인(jype.ai.kr)이 JYP 엔터테인먼트로 오인될 수 있어 비제휴 명시
+    disclaimerExtra:
+      "Korea Unboxed is an independent media site. We are not affiliated with, endorsed by, or connected to JYP Entertainment or any other entertainment company.",
     categories: [
-      { slug: "entertainment", name: "K-Pop & K-Drama", desc: "K-pop, K-dramas, Korean movies, celebrities and fandom culture" },
+      { slug: "entertainment", name: "K-Pop & K-Drama", desc: "K-pop groups and agencies (auditions, tours, tickets, fandom how-tos), K-dramas and celebrities" },
       { slug: "food", name: "Korean Food", desc: "Korean dishes, recipes, street food, and where to eat like a local" },
       { slug: "travel", name: "Travel Korea", desc: "Itineraries, hidden gems, transport tips, and seasonal travel guides" },
       { slug: "culture", name: "Culture & Life", desc: "Korean customs, language, etiquette, and everyday life explained" },

@@ -21,6 +21,8 @@ export default {
     author: "오늘의 머니꿀팁 편집부",
 
     niche: "재테크/금융/절약",
+    // 기본(starship 도메인용) 비제휴 고지문은 이 도메인과 무관하므로 제거
+    disclaimerExtra: "",
     categories: [
       { slug: "invest", name: "재테크·투자", desc: "예적금, 파킹통장, ISA, 연금, 초보 투자 가이드" },
       { slug: "save", name: "절약·알뜰", desc: "고정비 줄이기, 통신비·구독료 다이어트, 알뜰 소비" },

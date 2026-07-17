@@ -199,6 +199,7 @@ export function footer() {
     </div>
     <p class="disclaimer">
       ${t.footerDisclaimer}<br>
+      ${site.disclaimerExtra ? `${esc(site.disclaimerExtra)}<br>` : ""}
       &copy; ${year} ${esc(site.name)}. All rights reserved.
     </p>
   </div>
