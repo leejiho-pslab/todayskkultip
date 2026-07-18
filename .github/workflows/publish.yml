@@ -93,13 +93,19 @@ jobs:
           ADSENSE_SLOT_TOP: ${{ vars.ADSENSE_SLOT_TOP }}
           ADSENSE_SLOT_INARTICLE: ${{ vars.ADSENSE_SLOT_INARTICLE }}
           ADSENSE_SLOT_BOTTOM: ${{ vars.ADSENSE_SLOT_BOTTOM }}
+          ADSENSE_SLOT_SIDEBAR: ${{ vars.ADSENSE_SLOT_SIDEBAR }}
           TABOOLA_PUBLISHER: ${{ vars.TABOOLA_PUBLISHER }}
+          TABOOLA_PLACEMENT: ${{ vars.TABOOLA_PLACEMENT }}
+          TABOOLA_MODE: ${{ vars.TABOOLA_MODE }}
           NAVER_AD_SCRIPT: ${{ vars.NAVER_AD_SCRIPT }}
           COUPANG_PARTNER_ID: ${{ vars.COUPANG_PARTNER_ID }}
           NAVER_CONNECT_ID: ${{ vars.NAVER_CONNECT_ID }}
           GA4_ID: ${{ vars.GA4_ID }}
           GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
           NAVER_SITE_VERIFICATION: ${{ vars.NAVER_SITE_VERIFICATION }}
+          NAVER_VERIFICATION_FILE: ${{ vars.NAVER_VERIFICATION_FILE }}
+          BING_VERIFICATION: ${{ vars.BING_VERIFICATION }}
+          CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
           INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
           # 채널
           POSTS_PER_RUN: ${{ github.event.inputs.posts || vars.POSTS_PER_RUN || '1' }}
