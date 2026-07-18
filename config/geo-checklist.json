@@ -4,129 +4,508 @@
     {
       "name": "웹사이트 등록 절차",
       "items": [
-        { "item": "Google Search Console 등록", "note": "구글 검색 성과/문제 모니터링 필수 도구", "type": "manual", "status": "todo", "howto": "search.google.com/search-console 에서 도메인/URL 접두어 등록 후 소유권 확인(메타태그는 GOOGLE_SITE_VERIFICATION 변수로 자동 삽입됨)" },
-        { "item": "Bing 웹마스터 도구 등록", "note": "Perplexity/ChatGPT 등 Bing 기반 노출 확보", "type": "manual", "status": "todo", "howto": "bing.com/webmasters 에서 등록. GSC 연동 임포트 가능" }
+        {
+          "item": "Google Search Console 등록",
+          "note": "구글 검색 성과/문제 모니터링 필수 도구",
+          "type": "manual",
+          "status": "done",
+          "howto": "search.google.com/search-console 에서 도메인/URL 접두어 등록 후 소유권 확인(메타태그는 GOOGLE_SITE_VERIFICATION 변수로 자동 삽입됨)"
+        },
+        {
+          "item": "Bing 웹마스터 도구 등록",
+          "note": "Perplexity/ChatGPT 등 Bing 기반 노출 확보",
+          "type": "manual",
+          "status": "done",
+          "howto": "bing.com/webmasters 에서 등록. GSC 연동 임포트 가능"
+        }
       ]
     },
     {
       "name": "크롤링/인덱싱",
       "items": [
-        { "item": "웹사이트 크롤링 가능", "note": "크롤링 불가 시 검색 노출 불가", "type": "auto", "check": "crawlable" },
-        { "item": "웹사이트 인덱싱 가능", "note": "noindex 차단 없이 색인 가능해야 함", "type": "auto", "check": "indexable" },
-        { "item": "LLM 크롤링 모니터링", "note": "AI 봇 트래픽 파악으로 브랜드 노출 관리", "type": "manual", "status": "todo", "howto": "서버/Pages 액세스 로그 또는 GA4에서 GPTBot/ClaudeBot/PerplexityBot 트래픽 확인" },
-        { "item": "사이트맵 존재", "note": "사이트 구조/페이지 발견 도움", "type": "auto", "check": "sitemap_exists" },
-        { "item": "사이트맵 <lastmod> 태그 포함", "note": "재크롤링 우선순위 판단", "type": "auto", "check": "sitemap_lastmod" },
-        { "item": "GSC에 사이트맵 제출", "note": "크롤링 효율 향상", "type": "manual", "status": "todo", "howto": "GSC > 사이트맵 > sitemap.xml URL 제출" },
-        { "item": "Bing에 사이트맵 제출", "note": "Bing 크롤링 효율 향상", "type": "manual", "status": "todo", "howto": "Bing 웹마스터 > 사이트맵 제출" },
-        { "item": "robots.txt 존재", "note": "크롤러 가이드라인 제공", "type": "auto", "check": "robots_exists" },
-        { "item": "robots.txt가 에이전트/LLM/검색 크롤러 허용", "note": "중요 페이지 크롤링 차단 방지", "type": "auto", "check": "robots_allows_ai" },
-        { "item": "페이지가 주로 HTML로 구성", "note": "검색엔진/LLM이 가장 잘 이해하는 형식", "type": "auto", "check": "html_pages" }
+        {
+          "item": "웹사이트 크롤링 가능",
+          "note": "크롤링 불가 시 검색 노출 불가",
+          "type": "auto",
+          "check": "crawlable"
+        },
+        {
+          "item": "웹사이트 인덱싱 가능",
+          "note": "noindex 차단 없이 색인 가능해야 함",
+          "type": "auto",
+          "check": "indexable"
+        },
+        {
+          "item": "LLM 크롤링 모니터링",
+          "note": "AI 봇 트래픽 파악으로 브랜드 노출 관리",
+          "type": "manual",
+          "status": "todo",
+          "howto": "서버/Pages 액세스 로그 또는 GA4에서 GPTBot/ClaudeBot/PerplexityBot 트래픽 확인"
+        },
+        {
+          "item": "사이트맵 존재",
+          "note": "사이트 구조/페이지 발견 도움",
+          "type": "auto",
+          "check": "sitemap_exists"
+        },
+        {
+          "item": "사이트맵 <lastmod> 태그 포함",
+          "note": "재크롤링 우선순위 판단",
+          "type": "auto",
+          "check": "sitemap_lastmod"
+        },
+        {
+          "item": "GSC에 사이트맵 제출",
+          "note": "크롤링 효율 향상",
+          "type": "manual",
+          "status": "done",
+          "howto": "GSC > 사이트맵 > sitemap.xml URL 제출"
+        },
+        {
+          "item": "Bing에 사이트맵 제출",
+          "note": "Bing 크롤링 효율 향상",
+          "type": "manual",
+          "status": "done",
+          "howto": "Bing 웹마스터 > 사이트맵 제출"
+        },
+        {
+          "item": "robots.txt 존재",
+          "note": "크롤러 가이드라인 제공",
+          "type": "auto",
+          "check": "robots_exists"
+        },
+        {
+          "item": "robots.txt가 에이전트/LLM/검색 크롤러 허용",
+          "note": "중요 페이지 크롤링 차단 방지",
+          "type": "auto",
+          "check": "robots_allows_ai"
+        },
+        {
+          "item": "페이지가 주로 HTML로 구성",
+          "note": "검색엔진/LLM이 가장 잘 이해하는 형식",
+          "type": "auto",
+          "check": "html_pages"
+        }
       ]
     },
     {
       "name": "테크니컬 SEO",
       "items": [
-        { "item": "HTTPS 구현", "note": "랭킹 요소이자 신뢰도", "type": "auto", "check": "https" },
-        { "item": "sameAs 포함 Organization 스키마", "note": "공식 소셜 계정 인식", "type": "auto", "check": "org_schema" },
-        { "item": "주요 페이지 스키마 마크업", "note": "리치 스니펫으로 CTR 향상", "type": "auto", "check": "page_schema" },
-        { "item": "모든 페이지 2초 이내 로드", "note": "속도는 랭킹/UX 핵심", "type": "auto", "check": "lightweight" },
-        { "item": "Core Web Vitals(LCP/INP/CLS) 통과", "note": "구글 공식 랭킹 요소", "type": "manual", "status": "todo", "howto": "PageSpeed Insights/GSC Core Web Vitals 보고서로 측정(정적·경량 구조라 통과 가능성 높음)" },
-        { "item": "모바일 반응형 보장", "note": "모바일 우선 색인", "type": "auto", "check": "mobile_responsive" },
-        { "item": "블로그 글 author 스키마 + 작성자 프로필 연결", "note": "E-E-A-T 저자 신뢰도", "type": "auto", "check": "author_schema" }
+        {
+          "item": "HTTPS 구현",
+          "note": "랭킹 요소이자 신뢰도",
+          "type": "auto",
+          "check": "https"
+        },
+        {
+          "item": "sameAs 포함 Organization 스키마",
+          "note": "공식 소셜 계정 인식",
+          "type": "auto",
+          "check": "org_schema"
+        },
+        {
+          "item": "주요 페이지 스키마 마크업",
+          "note": "리치 스니펫으로 CTR 향상",
+          "type": "auto",
+          "check": "page_schema"
+        },
+        {
+          "item": "모든 페이지 2초 이내 로드",
+          "note": "속도는 랭킹/UX 핵심",
+          "type": "auto",
+          "check": "lightweight"
+        },
+        {
+          "item": "Core Web Vitals(LCP/INP/CLS) 통과",
+          "note": "구글 공식 랭킹 요소",
+          "type": "manual",
+          "status": "todo",
+          "howto": "PageSpeed Insights/GSC Core Web Vitals 보고서로 측정(정적·경량 구조라 통과 가능성 높음)"
+        },
+        {
+          "item": "모바일 반응형 보장",
+          "note": "모바일 우선 색인",
+          "type": "auto",
+          "check": "mobile_responsive"
+        },
+        {
+          "item": "블로그 글 author 스키마 + 작성자 프로필 연결",
+          "note": "E-E-A-T 저자 신뢰도",
+          "type": "auto",
+          "check": "author_schema"
+        }
       ]
     },
     {
       "name": "콘텐츠 SEO",
       "items": [
-        { "item": "첫 문단에 타겟 롱테일 키워드 포함", "note": "페이지 주제 빠른 파악", "type": "auto", "check": "first_para_keyword" },
-        { "item": "중요 정보 굵게 강조", "note": "핵심 내용 명확 전달", "type": "auto", "check": "bold_emphasis" },
-        { "item": "이미지 ALT 태그(롱테일 키워드 포함)", "note": "이미지 검색/접근성", "type": "auto", "check": "img_alt" },
-        { "item": "메타 디스크립션에 핵심 키워드 포함", "note": "CTR/관련성", "type": "auto", "check": "meta_description" },
-        { "item": "3-6개월마다 주요 콘텐츠 검토/수정", "note": "최신성 유지", "type": "manual", "status": "todo", "howto": "분기별로 상위 트래픽 글 갱신 후 updated 날짜 변경(IndexNow 자동 핑)" },
-        { "item": "의미론적 HTML5 요소 사용", "note": "header/nav/main/article/section", "type": "auto", "check": "semantic_html" },
-        { "item": "H1→H2→H3 계층 구조", "note": "중요도/구조 파악", "type": "auto", "check": "heading_hierarchy" },
-        { "item": "게시일/최종 검토일 표시", "note": "신선도 명시", "type": "auto", "check": "date_visible" },
-        { "item": "도입부 임팩트 요약문(300자 내외)", "note": "이탈률↓, Featured Snippet↑", "type": "auto", "check": "summary_box" },
-        { "item": "테이블/인포그래픽 등 시각 포맷", "note": "체류시간/전달력↑", "type": "auto", "check": "visual_format" },
-        { "item": "수치 데이터 출처/발행연도 명시", "note": "팩트체킹 가능(E-E-A-T)", "type": "auto", "check": "source_cited" },
-        { "item": "신뢰도 높은 외부 링크 2개 이상", "note": "신뢰성 신호", "type": "auto", "check": "external_links" },
-        { "item": "내부 링크 CTA로 연관 콘텐츠 연결", "note": "체류시간/권위도", "type": "auto", "check": "internal_links" },
-        { "item": "정의형 쿼리 콘텐츠(What is...)", "note": "정보성 검색 노출", "type": "auto", "check": "query_definition" },
-        { "item": "추천/비교형 쿼리 콘텐츠(Best/vs)", "note": "구매의도 전환", "type": "auto", "check": "query_comparison" },
-        { "item": "방법형 쿼리 콘텐츠(How to)", "note": "높은 검색량 실용 검색", "type": "auto", "check": "query_howto" },
-        { "item": "FAQ 스키마(고객 언어 질문)", "note": "음성검색/Featured Snippet", "type": "auto", "check": "faq_schema" },
-        { "item": "콘텐츠 업데이트 시 인덱싱 요청", "note": "빠른 색인 반영", "type": "auto", "check": "indexnow" },
-        { "item": "주제 권위성(경쟁사 수준 커버리지)", "note": "분야 랭킹 우위", "type": "manual", "status": "todo", "howto": "핵심 주제 클러스터를 지속 확장(카테고리별 글 10편 이상 목표)" },
-        { "item": "First-party 데이터/경험 기반 콘텐츠", "note": "차별화·E-E-A-T 경험", "type": "manual", "status": "todo", "howto": "직접 측정/사용 후기/사례 등 1차 데이터 삽입" }
+        {
+          "item": "첫 문단에 타겟 롱테일 키워드 포함",
+          "note": "페이지 주제 빠른 파악",
+          "type": "auto",
+          "check": "first_para_keyword"
+        },
+        {
+          "item": "중요 정보 굵게 강조",
+          "note": "핵심 내용 명확 전달",
+          "type": "auto",
+          "check": "bold_emphasis"
+        },
+        {
+          "item": "이미지 ALT 태그(롱테일 키워드 포함)",
+          "note": "이미지 검색/접근성",
+          "type": "auto",
+          "check": "img_alt"
+        },
+        {
+          "item": "메타 디스크립션에 핵심 키워드 포함",
+          "note": "CTR/관련성",
+          "type": "auto",
+          "check": "meta_description"
+        },
+        {
+          "item": "3-6개월마다 주요 콘텐츠 검토/수정",
+          "note": "최신성 유지",
+          "type": "manual",
+          "status": "todo",
+          "howto": "분기별로 상위 트래픽 글 갱신 후 updated 날짜 변경(IndexNow 자동 핑)"
+        },
+        {
+          "item": "의미론적 HTML5 요소 사용",
+          "note": "header/nav/main/article/section",
+          "type": "auto",
+          "check": "semantic_html"
+        },
+        {
+          "item": "H1→H2→H3 계층 구조",
+          "note": "중요도/구조 파악",
+          "type": "auto",
+          "check": "heading_hierarchy"
+        },
+        {
+          "item": "게시일/최종 검토일 표시",
+          "note": "신선도 명시",
+          "type": "auto",
+          "check": "date_visible"
+        },
+        {
+          "item": "도입부 임팩트 요약문(300자 내외)",
+          "note": "이탈률↓, Featured Snippet↑",
+          "type": "auto",
+          "check": "summary_box"
+        },
+        {
+          "item": "테이블/인포그래픽 등 시각 포맷",
+          "note": "체류시간/전달력↑",
+          "type": "auto",
+          "check": "visual_format"
+        },
+        {
+          "item": "수치 데이터 출처/발행연도 명시",
+          "note": "팩트체킹 가능(E-E-A-T)",
+          "type": "auto",
+          "check": "source_cited"
+        },
+        {
+          "item": "신뢰도 높은 외부 링크 2개 이상",
+          "note": "신뢰성 신호",
+          "type": "auto",
+          "check": "external_links"
+        },
+        {
+          "item": "내부 링크 CTA로 연관 콘텐츠 연결",
+          "note": "체류시간/권위도",
+          "type": "auto",
+          "check": "internal_links"
+        },
+        {
+          "item": "정의형 쿼리 콘텐츠(What is...)",
+          "note": "정보성 검색 노출",
+          "type": "auto",
+          "check": "query_definition"
+        },
+        {
+          "item": "추천/비교형 쿼리 콘텐츠(Best/vs)",
+          "note": "구매의도 전환",
+          "type": "auto",
+          "check": "query_comparison"
+        },
+        {
+          "item": "방법형 쿼리 콘텐츠(How to)",
+          "note": "높은 검색량 실용 검색",
+          "type": "auto",
+          "check": "query_howto"
+        },
+        {
+          "item": "FAQ 스키마(고객 언어 질문)",
+          "note": "음성검색/Featured Snippet",
+          "type": "auto",
+          "check": "faq_schema"
+        },
+        {
+          "item": "콘텐츠 업데이트 시 인덱싱 요청",
+          "note": "빠른 색인 반영",
+          "type": "auto",
+          "check": "indexnow"
+        },
+        {
+          "item": "주제 권위성(경쟁사 수준 커버리지)",
+          "note": "분야 랭킹 우위",
+          "type": "manual",
+          "status": "todo",
+          "howto": "핵심 주제 클러스터를 지속 확장(카테고리별 글 10편 이상 목표)"
+        },
+        {
+          "item": "First-party 데이터/경험 기반 콘텐츠",
+          "note": "차별화·E-E-A-T 경험",
+          "type": "manual",
+          "status": "todo",
+          "howto": "직접 측정/사용 후기/사례 등 1차 데이터 삽입"
+        }
       ]
     },
     {
       "name": "브랜드 엔티티 형성",
       "items": [
-        { "item": "Google 비즈니스 프로필 등록", "note": "로컬/지도 검색 노출", "type": "manual", "status": "na", "howto": "오프라인 사업장이 있을 때 등록(순수 정보 블로그는 해당 없음 가능)" },
-        { "item": "Google 비즈니스 프로필 정확성", "note": "정보 정확도", "type": "manual", "status": "na" },
-        { "item": "여러 SNS 브랜드 프로필 보유", "note": "노출/백링크 확대", "type": "manual", "status": "todo", "howto": "site.config.js brand.sameAs 에 등록한 SNS 채널 실제 개설" },
-        { "item": "플랫폼 간 브랜드 아이덴티티 일관성", "note": "브랜드 인식 정확도", "type": "manual", "status": "todo" }
+        {
+          "item": "Google 비즈니스 프로필 등록",
+          "note": "로컬/지도 검색 노출",
+          "type": "manual",
+          "status": "na",
+          "howto": "오프라인 사업장이 있을 때 등록(순수 정보 블로그는 해당 없음 가능)"
+        },
+        {
+          "item": "Google 비즈니스 프로필 정확성",
+          "note": "정보 정확도",
+          "type": "manual",
+          "status": "na"
+        },
+        {
+          "item": "여러 SNS 브랜드 프로필 보유",
+          "note": "노출/백링크 확대",
+          "type": "manual",
+          "status": "todo",
+          "howto": "site.config.js brand.sameAs 에 등록한 SNS 채널 실제 개설"
+        },
+        {
+          "item": "플랫폼 간 브랜드 아이덴티티 일관성",
+          "note": "브랜드 인식 정확도",
+          "type": "manual",
+          "status": "todo"
+        }
       ]
     },
     {
       "name": "리뷰/후기",
       "items": [
-        { "item": "유저 리뷰 보유", "note": "사회적 증거/전환율", "type": "manual", "status": "na", "howto": "제품/서비스가 있을 때 적용" },
-        { "item": "2개 이상 플랫폼 리뷰", "note": "다양성/신뢰성", "type": "manual", "status": "na" },
-        { "item": "리뷰 빈도 추적", "note": "활동성/만족도 트렌드", "type": "manual", "status": "na" },
-        { "item": "경쟁사 대비 리뷰량 분석", "note": "경쟁 우위 파악", "type": "manual", "status": "na" }
+        {
+          "item": "유저 리뷰 보유",
+          "note": "사회적 증거/전환율",
+          "type": "manual",
+          "status": "na",
+          "howto": "제품/서비스가 있을 때 적용"
+        },
+        {
+          "item": "2개 이상 플랫폼 리뷰",
+          "note": "다양성/신뢰성",
+          "type": "manual",
+          "status": "na"
+        },
+        {
+          "item": "리뷰 빈도 추적",
+          "note": "활동성/만족도 트렌드",
+          "type": "manual",
+          "status": "na"
+        },
+        {
+          "item": "경쟁사 대비 리뷰량 분석",
+          "note": "경쟁 우위 파악",
+          "type": "manual",
+          "status": "na"
+        }
       ]
     },
     {
       "name": "UGC/커뮤니티",
       "items": [
-        { "item": "브랜드 언급 위치 전수 조사", "note": "모니터링/홍보 기회", "type": "manual", "status": "todo" },
-        { "item": "공식 브랜드 계정 생성", "note": "공식 채널 확보", "type": "manual", "status": "todo" },
-        { "item": "잘못된 정보 사례 파악", "note": "평판 관리", "type": "manual", "status": "todo" },
-        { "item": "잘못된 정보 정정 조치", "note": "신뢰성 유지", "type": "manual", "status": "todo" },
-        { "item": "고객 경험 공유 독려", "note": "사회적 증거 축적", "type": "manual", "status": "todo" },
-        { "item": "브랜드 멘션/감정 모니터링", "note": "실시간 평판 파악", "type": "manual", "status": "todo" }
+        {
+          "item": "브랜드 언급 위치 전수 조사",
+          "note": "모니터링/홍보 기회",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "공식 브랜드 계정 생성",
+          "note": "공식 채널 확보",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "잘못된 정보 사례 파악",
+          "note": "평판 관리",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "잘못된 정보 정정 조치",
+          "note": "신뢰성 유지",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "고객 경험 공유 독려",
+          "note": "사회적 증거 축적",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "브랜드 멘션/감정 모니터링",
+          "note": "실시간 평판 파악",
+          "type": "manual",
+          "status": "todo"
+        }
       ]
     },
     {
       "name": "리스트형 콘텐츠(Listicles)",
       "items": [
-        { "item": "경쟁사 'Best' 리스트 파악", "note": "추천 리스트 진입 기회", "type": "manual", "status": "todo" },
-        { "item": "리스트 내 브랜드 순위 기록", "note": "위상 변화 추적", "type": "manual", "status": "todo" },
-        { "item": "리스트 등재 홍보 프로세스", "note": "체계적 노출", "type": "manual", "status": "todo" },
-        { "item": "신규 리스트 콘텐츠 추적", "note": "노출 기회 발굴", "type": "manual", "status": "todo" },
-        { "item": "신규 리스트 콘텐츠 제안", "note": "능동적 홍보", "type": "manual", "status": "todo" }
+        {
+          "item": "경쟁사 'Best' 리스트 파악",
+          "note": "추천 리스트 진입 기회",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "리스트 내 브랜드 순위 기록",
+          "note": "위상 변화 추적",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "리스트 등재 홍보 프로세스",
+          "note": "체계적 노출",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "신규 리스트 콘텐츠 추적",
+          "note": "노출 기회 발굴",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "신규 리스트 콘텐츠 제안",
+          "note": "능동적 홍보",
+          "type": "manual",
+          "status": "todo"
+        }
       ]
     },
     {
       "name": "백링크 전략",
       "items": [
-        { "item": "PR 요청 응답 전문가", "note": "미디어 노출/권위성", "type": "manual", "status": "todo" },
-        { "item": "언론/매체 백링크 확보", "note": "도메인 권위도↑", "type": "manual", "status": "todo" },
-        { "item": "PBN 시도 여부", "note": "리스크 존재(권장 안 함)", "type": "manual", "status": "na" },
-        { "item": "팟캐스트 인터뷰 전문가", "note": "노출/전문성", "type": "manual", "status": "todo" },
-        { "item": "게스트 포스팅 전문가", "note": "백링크/홍보", "type": "manual", "status": "todo" }
+        {
+          "item": "PR 요청 응답 전문가",
+          "note": "미디어 노출/권위성",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "언론/매체 백링크 확보",
+          "note": "도메인 권위도↑",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "PBN 시도 여부",
+          "note": "리스크 존재(권장 안 함)",
+          "type": "manual",
+          "status": "na"
+        },
+        {
+          "item": "팟캐스트 인터뷰 전문가",
+          "note": "노출/전문성",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "게스트 포스팅 전문가",
+          "note": "백링크/홍보",
+          "type": "manual",
+          "status": "todo"
+        }
       ]
     },
     {
       "name": "브랜드 멘션(권위 인용)",
       "items": [
-        { "item": "언급 목표 사이트 목록 작성", "note": "체계적 홍보 전략", "type": "manual", "status": "todo" },
-        { "item": "언급 확보 전략 수립", "note": "구체적 실행 계획", "type": "manual", "status": "todo" },
-        { "item": "정기 제안 일정 수립", "note": "지속적 홍보", "type": "manual", "status": "todo" },
-        { "item": "위키피디아/나무위키 문서 등재", "note": "권위성/공신력", "type": "manual", "status": "todo" },
-        { "item": "위키데이터 브랜드 정보 갱신", "note": "LLM 정확 정보 보장", "type": "manual", "status": "todo" }
+        {
+          "item": "언급 목표 사이트 목록 작성",
+          "note": "체계적 홍보 전략",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "언급 확보 전략 수립",
+          "note": "구체적 실행 계획",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "정기 제안 일정 수립",
+          "note": "지속적 홍보",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "위키피디아/나무위키 문서 등재",
+          "note": "권위성/공신력",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "위키데이터 브랜드 정보 갱신",
+          "note": "LLM 정확 정보 보장",
+          "type": "manual",
+          "status": "todo"
+        }
       ]
     },
     {
       "name": "성과 추적 및 모니터링",
       "items": [
-        { "item": "AI 검색 플랫폼 브랜드 가시성 추적", "note": "AI 검색 노출 현황", "type": "manual", "status": "todo", "howto": "ChatGPT/Perplexity/Gemini에 브랜드/주제 질의해 인용 여부 주기 기록(대시보드 스냅샷 활용)" },
-        { "item": "GA4로 LLM 오가닉 트래픽 추적", "note": "LLM 트래픽 영향 측정", "type": "manual", "status": "todo", "howto": "GA4에서 referrer chatgpt.com/perplexity.ai 등 세그먼트 생성" },
-        { "item": "LLM 답변 스냅샷 주기 저장", "note": "변화 추이 파악", "type": "manual", "status": "todo" },
-        { "item": "LLM의 브랜드 정보 정확성 확인", "note": "정보 정확/일관성", "type": "manual", "status": "todo" },
-        { "item": "AI 브랜드 언급 맥락(긍/부/중) 분석", "note": "맥락 품질 관리", "type": "manual", "status": "todo" }
+        {
+          "item": "AI 검색 플랫폼 브랜드 가시성 추적",
+          "note": "AI 검색 노출 현황",
+          "type": "manual",
+          "status": "todo",
+          "howto": "ChatGPT/Perplexity/Gemini에 브랜드/주제 질의해 인용 여부 주기 기록(대시보드 스냅샷 활용)"
+        },
+        {
+          "item": "GA4로 LLM 오가닉 트래픽 추적",
+          "note": "LLM 트래픽 영향 측정",
+          "type": "manual",
+          "status": "todo",
+          "howto": "GA4에서 referrer chatgpt.com/perplexity.ai 등 세그먼트 생성"
+        },
+        {
+          "item": "LLM 답변 스냅샷 주기 저장",
+          "note": "변화 추이 파악",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "LLM의 브랜드 정보 정확성 확인",
+          "note": "정보 정확/일관성",
+          "type": "manual",
+          "status": "todo"
+        },
+        {
+          "item": "AI 브랜드 언급 맥락(긍/부/중) 분석",
+          "note": "맥락 품질 관리",
+          "type": "manual",
+          "status": "todo"
+        }
       ]
     }
   ]
