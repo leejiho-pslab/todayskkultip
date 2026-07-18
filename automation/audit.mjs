@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { site } from "../config/site.config.js";
 import { PUBLIC_DIR, loadPosts } from "./lib.mjs";
+import { t } from "./i18n.mjs";
 
 function read(rel) {
   const p = path.join(PUBLIC_DIR, rel);
@@ -83,9 +84,11 @@ export function runAudit() {
   const ep = (fn) => everyPost(posts, fn);
   let r;
   r = ep((p) => {
-    const first = (p.body.split(/\n\s*\n/)[0] || "");
-    return (p.keywords || []).some((k) => first.includes(k)) ||
-      (p.keywords || []).some((k) => p.title.includes(k));
+    // 대소문자 무시 비교 — 영어 프로필에서 "jyp" vs "JYP" 오판 방지
+    const first = (p.body.split(/\n\s*\n/)[0] || "").toLowerCase();
+    const title = (p.title || "").toLowerCase();
+    return (p.keywords || []).some((k) => first.includes(String(k).toLowerCase())) ||
+      (p.keywords || []).some((k) => title.includes(String(k).toLowerCase()));
   });
   checks.first_para_keyword = { pass: r.pass, detail: r.detail };
 
@@ -114,7 +117,8 @@ export function runAudit() {
   const headOk = htmls.length > 0 && htmls.every((h) => /<h1/.test(h.html) && /<h2/.test(h.html));
   set("heading_hierarchy", headOk, "H1→H2 계층");
 
-  set("date_visible", htmls.length > 0 && htmls.every((h) => /게시일/.test(h.html)), "게시일/검토일 표시");
+  // 언어별 표시 문자열(i18n) 기준으로 검사 — 영어 프로필은 "Published"
+  set("date_visible", htmls.length > 0 && htmls.every((h) => h.html.includes(t.publishedOn)), "게시일/검토일 표시");
 
   r = ep((p) => (p.summary || "").length >= 150);
   checks.summary_box = { pass: r.pass, detail: r.detail };
