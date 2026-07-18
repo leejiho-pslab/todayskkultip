@@ -160,21 +160,15 @@ function collect() {
   const bloggerPub = bloggerPosts.filter((p) => p.published?.blogger).length;
   const wpPosts = posts.filter((p) => p.channels?.wordpress);
   const wpPub = wpPosts.filter((p) => p.published?.wordpress).length;
-  // 워드프레스: wpcom(무료) 모드 우선, 아니면 자체 호스팅 3종
-  const wpcomMode = !!(env.WPCOM_SITE && env.WPCOM_TOKEN);
-  const wpSecrets = wpcomMode
-    ? [
-        { k: "WPCOM_SITE (WordPress.com 무료)", ok: !!env.WPCOM_SITE },
-        { k: "WPCOM_TOKEN", ok: !!env.WPCOM_TOKEN },
-      ]
-    : [
-        { k: "WPCOM_SITE + WPCOM_TOKEN (무료 플랜)", ok: false },
-        { k: "또는 WORDPRESS_URL/USER/APP_PASSWORD (자체 호스팅)", ok: !!(env.WORDPRESS_URL && env.WORDPRESS_USER && env.WORDPRESS_APP_PASSWORD) },
-      ];
-  // 채널이 config 에서 꺼져 있으면(계정 정지 등) 자격증명이 있어도 '보류'로 표시
+  // 워드프레스: 자체 호스팅 전용 (WP.com 무료 자동화는 계정 정지 이력으로 봉인)
+  const wpSecrets = [
+    { k: "WORDPRESS_URL (Variables)", ok: !!env.WORDPRESS_URL },
+    { k: "WORDPRESS_USER (Variables)", ok: !!env.WORDPRESS_USER },
+    { k: "WORDPRESS_APP_PASSWORD (Secrets)", ok: !!env.WORDPRESS_APP_PASSWORD },
+  ];
   const wpConfigured =
     site.channels.wordpress.enabled &&
-    (wpcomMode || !!(env.WORDPRESS_URL && env.WORDPRESS_USER && env.WORDPRESS_APP_PASSWORD));
+    !!(env.WORDPRESS_URL && env.WORDPRESS_USER && env.WORDPRESS_APP_PASSWORD);
   const bloggerSecrets = [
     { k: "BLOGGER_BLOG_ID", ok: !!env.BLOGGER_BLOG_ID },
     { k: "BLOGGER_CLIENT_ID", ok: !!env.BLOGGER_CLIENT_ID },
@@ -230,7 +224,7 @@ function collect() {
     channels: [
       { k: "네이버 블로그 (1순위)", ok: false, v: "수동(다운로드 제공)" },
       { k: "구글 블로거 (2순위)", ok: bloggerConfigured, v: bloggerConfigured ? `연동됨 · ${bloggerPub}편` : "연동 대기" },
-      { k: "워드프레스 (3순위)", ok: wpConfigured, v: wpConfigured ? `연동됨 · ${wpPub}편` : (site.channels.wordpress.enabled ? "연동 대기" : "보류 — WP.com 무료 계정 정지(자동화 스팸 분류)") },
+      { k: "워드프레스 (3순위)", ok: wpConfigured, v: wpConfigured ? `연동됨 · ${wpPub}편` : "자체 호스팅 연결 대기 (WP.com 무료 자동화는 정지 이력으로 봉인)" },
       { k: "자체 사이트 (기준)", ok: true, v: `운영중 · ${sitePosts.length}편` },
     ],
     money: [

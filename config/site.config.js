@@ -181,13 +181,12 @@ const baseSite = {
     },
     naver: { enabled: false }, // 공식 글쓰기 API 부재로 현재 제외
     wordpress: {
-      // ⏸ 보류 (2026-07-17): WordPress.com 무료 블로그(todayskkultip)가 자동 발행을
-      //   스팸으로 분류해 계정 정지됨. 무료 플랜은 API 자동화에 부적합 판정.
-      //   재개하려면 자체 호스팅 WP 를 마련하고 아래 enabled 를 원래 조건으로 복원:
-      //   !!(process.env.WPCOM_SITE && process.env.WPCOM_TOKEN) ||
-      //   !!(process.env.WORDPRESS_URL && process.env.WORDPRESS_APP_PASSWORD)
-      enabled: false,
-      mode: process.env.WPCOM_SITE && process.env.WPCOM_TOKEN ? "wpcom" : "selfhosted",
+      // 자체 호스팅 전용으로 재개 (2026-07-18).
+      // ⚠️ WordPress.com(wpcom) 무료 플랜은 자동 발행을 스팸 분류해 계정을 정지시킴
+      //   (2026-07-17 사고) — wpcom 자격증명만으로는 절대 활성화되지 않도록
+      //   자체 호스팅 변수(WORDPRESS_URL + APP_PASSWORD)가 있을 때만 켠다.
+      enabled: !!(process.env.WORDPRESS_URL && process.env.WORDPRESS_APP_PASSWORD),
+      mode: "selfhosted",
       // wpcom 모드: 사이트 주소(도메인만, 예: todays-kkultip.wordpress.com)
       wpcomSite: process.env.WPCOM_SITE || "",
       url: process.env.WORDPRESS_URL || "", // selfhosted 모드: 예 https://myblog.com

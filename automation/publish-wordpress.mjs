@@ -107,7 +107,11 @@ function markPublished(file) {
 }
 
 async function main() {
-  const wpcom = !!(process.env.WPCOM_SITE && process.env.WPCOM_TOKEN);
+  // wpcom(WordPress.com) 모드는 config 가 명시할 때만 — 무료 플랜 자동화가 계정 정지를
+  // 유발한 이력이 있어, 남아있는 WPCOM 시크릿만으로 wpcom 발행이 켜지지 않게 한다.
+  const wpcom =
+    site.channels.wordpress.mode === "wpcom" &&
+    !!(process.env.WPCOM_SITE && process.env.WPCOM_TOKEN);
   const client = wpcom ? null : auth();
   // 1회 실행당 발행 상한 — 신규 블로그에 한꺼번에 쏟아지면 스팸으로 보일 수 있음
   const LIMIT = Number(process.env.PUBLISH_LIMIT || 2);
