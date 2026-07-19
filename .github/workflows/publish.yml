@@ -124,8 +124,9 @@ jobs:
           WORDPRESS_STATUS: ${{ vars.WORDPRESS_STATUS }}
         run: node automation/run-all.mjs
 
-      - name: 생성된 글 저장소에 커밋
-        if: env.GENERATE != 'false'
+      # GENERATE=false 인 push 빌드에서도 채널 발행(WP/블로거)이 돌며 published 플래그가
+      # 바뀔 수 있으므로 항상 커밋 시도 — 플래그 유실 시 같은 글이 중복 발행되는 사고 방지
+      - name: 생성된 글/발행 플래그 저장소에 커밋
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

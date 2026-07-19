@@ -495,6 +495,21 @@ function render(d) {
     </div>`;
   }).join("");
 
+  // "지금 해야 할 일" — 상태에서 파생되는 운영자 액션만 추림(자동으로 되는 일은 제외)
+  const todos = [];
+  if (d.adsenseDone < d.adsense.length)
+    todos.push({ t: "애드센스 심사 결과 확인", s: "대기", b: "b-todo",
+      d: "3개 도메인 심사 중(2~4주). 승인 메일이 오면 슬롯 ID 4종 등록이 다음 액션입니다." });
+  if (ch.wordpress.configured && ch.wordpress.pending > 0)
+    todos.push({ t: `워드프레스 백필 자동 진행 중 — 대기 ${ch.wordpress.pending}편`, s: "자동", b: "b-auto",
+      d: "매 실행 2편씩 자동 발행됩니다. 운영자가 할 일은 없습니다." });
+  if ((site.profile || "default") === "default")
+    todos.push({ t: "네이버 블로그 수동 발행 루틴", s: "수동", b: "b-manual",
+      d: `<a href="#naver" onclick="showTab('naver')">네이버 탭</a>에서 원고를 내려받아 blog.naver.com 에 주 2~3회 붙여넣어 주세요.` });
+  if (!d.report.revenue.total)
+    todos.push({ t: "첫 수익 발생 시 기록", s: "나중", b: "b-na",
+      d: `수익이 확인되면 <a href="${esc(d.revenueEditUrl)}" target="_blank">revenue.json</a> 에 한 줄 추가 → 리포트 탭에 집계됩니다.` });
+
   // ===== 탭1: 전체 =====
   const overview = `
 <div class="grid cols">
@@ -539,57 +554,21 @@ function render(d) {
       <div class="chl"><span>기준 채널</span></div></div>
   </div></section>
 
-<section><h2>🚦 구축 · 연동 현황 <span class="mini">(${d.setupDone}/${d.setupTotal} 완료)</span></h2>
-  <div class="sub">코드로 구축된 항목은 자동으로 ● 표시됩니다. ● 빨강은 운영자 설정(자격증명/계정)이 필요한 항목입니다.</div>
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
-    <div class="card"><div class="label">🔎 배포 · 검색등록</div>${setRows(d.setup.search)}</div>
-    <div class="card"><div class="label">📡 채널</div>${setRows(d.setup.channels)}</div>
-    <div class="card"><div class="label">💰 수익화</div>${setRows(d.setup.money)}</div>
-    <div class="card"><div class="label">🧩 사이트 기능</div>${setRows(d.setup.features)}</div>
-  </div></section>
-
-<section><h2>💰 수익화(광고사이트) 준비도 <span class="mini">(${d.adsenseDone + d.affiliateDone}/${d.adsense.length + d.affiliateTotal})</span></h2>
-  <div class="sub">수익 발생까지 걸리는 시간이 짧은 순서입니다. 각 채널에 승인 리드타임이 있으므로 <b>지금 시작해야 총 대기시간이 최소화</b>됩니다.
-    자세한 절차와 가입 링크는 <a href="#ads" onclick="showTab('ads')">💰 광고사이트 탭</a>에서 확인하세요.</div>
-  <div class="card"><table><thead><tr><th>수익화 채널</th><th>수익까지 예상 시간</th><th>상태</th></tr></thead><tbody>
-    <tr><td>① 네이버 쇼핑커넥트 (제휴)</td><td class="d">심사 없음 — 가입 즉시 시작</td><td><span class="badge ${d.affiliate.naverConnect.every((s)=>s.ok) ? "b-done" : "b-todo"}">${d.affiliate.naverConnect.filter((s)=>s.ok).length}/${d.affiliate.naverConnect.length}</span></td></tr>
-    <tr><td>② 쿠팡 파트너스 (제휴)</td><td class="d">가입 즉시 링크 발급 — 수일 내 가능</td><td><span class="badge ${d.affiliate.coupang.every((s)=>s.ok) ? "b-done" : "b-todo"}">${d.affiliate.coupang.filter((s)=>s.ok).length}/${d.affiliate.coupang.length}</span></td></tr>
-    <tr><td>③ Google AdSense (배너)</td><td class="d">커스텀 도메인 필수 + 심사 2~4주</td><td><span class="badge ${d.adsenseDone === d.adsense.length ? "b-done" : "b-todo"}">${d.adsenseDone}/${d.adsense.length}</span></td></tr>
-    <tr><td>④ 네이버 애드포스트 (네이버 블로그)</td><td class="d">블로그 90일+ 운영 후 신청 가능</td><td><span class="badge b-todo">${d.affiliate.adpost.filter((s)=>s.ok).length}/${d.affiliate.adpost.length}</span></td></tr>
-  </tbody></table></div></section>
-
-<section><h2>🗓 발행 예정 (플랜 검토)</h2>
-  <div class="sub">다음에 자동 발행될 순서입니다. 운영자 요청이 시즌 주제보다 먼저 처리됩니다. 매일 09:00·15:00·21:00(KST) 각 ${d.perRun}편(하루 ${d.perRun * (site.publishing.runsPerDay || 1)}편).</div>
-  <div class="card"><table><thead><tr><th>#</th><th>제목</th><th>카테고리</th><th>구분</th><th>시점</th></tr></thead><tbody>
-  ${d.plan.length ? d.plan.map((t, i) => `<tr>
+<section><h2>⏭ 다음 발행 3편 <span class="mini">(자동 · 매일 09:00/15:00/21:00 KST)</span></h2>
+  <div class="card"><table><thead><tr><th>#</th><th>제목</th><th>카테고리</th><th>구분</th></tr></thead><tbody>
+  ${d.plan.length ? d.plan.slice(0, 3).map((t, i) => `<tr>
       <td>${i + 1}</td><td>${esc(t.title)}</td><td>${esc(catName(t.category))}</td>
-      <td><span class="badge ${t.source === "운영자 요청" ? "b-manual" : "b-auto"}">${esc(t.source)}</span></td>
-      <td><span class="badge ${t.when === "다음 발행" ? "b-done" : "b-na"}">${esc(t.when)}</span></td></tr>`).join("")
-    : `<tr><td colspan="5" class="mini">예정된 주제가 없습니다.</td></tr>`}
-  </tbody></table></div></section>
+      <td><span class="badge ${t.source === "운영자 요청" ? "b-manual" : "b-auto"}">${esc(t.source)}</span></td></tr>`).join("")
+    : `<tr><td colspan="4" class="mini">예정된 주제가 없습니다 — 다음 발행 시 자동 보충됩니다.</td></tr>`}
+  </tbody></table>
+  <div class="linkrow"><a href="#report" onclick="showTab('report')">전체 발행 계획·추이·수익 → 📊 리포트 탭</a></div></div></section>
 
-<section><h2>📝 내 의견 · 요청 (편집 지시)</h2>
-  <div class="sub"><code>config/requests.json</code> 에서 관리 ·
-    <a href="${esc(d.editUrl)}" target="_blank">✏️ 깃허브에서 바로 편집</a> → 저장하면 다음 발행부터 반영됩니다.</div>
-  <div class="card">
-    <div class="label">📌 고정 작성 기준 (모든 글 항상 적용 · 코드 내장)</div>
-    <ol style="margin:6px 0 18px;padding-left:20px">
-      ${(d.requests.baseline || []).map((r) => `<li style="margin:4px 0">${esc(r)}</li>`).join("")}
-    </ol>
-    <div class="label">공통 편집 지침 (운영자 수정 가능)</div>
-    <div style="margin:6px 0 16px">${d.requests.notes ? esc(d.requests.notes) : "<span class=mini>아직 없음 — requests.json 의 notes 에 적어주세요. 예: '존댓말, 정부 공식 출처 필수, 표 적극 활용'</span>"}</div>
-    <div class="label">요청 주제 (${d.requests.pendingCount}건 대기)</div>
-    <table style="margin-top:6px"><thead><tr><th>제목</th><th>카테고리</th><th>상태</th><th>메모</th></tr></thead><tbody>
-    ${d.requests.topics.length ? d.requests.topics.map((t) => `<tr>
-        <td>${esc(t.title)}</td><td>${esc(catName(t.category))}</td>
-        <td><span class="badge ${t.status === "done" ? "b-done" : t.status === "pending" ? "b-manual" : "b-na"}">${t.status === "done" ? "발행됨" : t.status === "pending" ? "대기" : esc(t.status)}</span></td>
-        <td class="d">${esc(t.note || "")}</td></tr>`).join("")
-      : `<tr><td colspan="4" class="mini">등록된 요청이 없습니다.</td></tr>`}
-    </tbody></table>
-  </div></section>
-
-<section><h2>📅 월별 발행 추이</h2>
-  <div class="card">${Object.keys(d.publishing.byMonth).length ? bars(d.publishing.byMonth) : "<div class=mini>데이터 없음</div>"}</div></section>`;
+<section><h2>✅ 지금 해야 할 일 <span class="mini">(운영자 액션만 추림)</span></h2>
+  <div class="card">${todos.length ? todos.map((x) => `
+    <div class="row"><div><div>${esc(x.t)} <span class="badge ${x.b}">${esc(x.s)}</span></div>
+      <div class="d">${x.d}</div></div></div>`).join("")
+    : "<div class=mini>지금 필요한 운영자 액션이 없습니다. 자동 발행이 계속됩니다.</div>"}
+  </div></section>`;
 
   // ===== 탭: 리포트 (기간별 발행·수익·주제 풀) =====
   const rp = d.report;
@@ -656,7 +635,27 @@ function render(d) {
 
 <section><h2>🗓 발행 계획 (다음 12편)</h2>
   <div class="card">${scheduleTable(d.plan)}</div>
-  ${planDownloads}</section>`;
+  ${planDownloads}</section>
+
+<section><h2>📝 내 의견 · 요청 (편집 지시)</h2>
+  <div class="sub"><code>config/requests.json</code> 에서 관리 ·
+    <a href="${esc(d.editUrl)}" target="_blank">✏️ 깃허브에서 바로 편집</a> → 저장하면 다음 발행부터 반영됩니다.</div>
+  <div class="card">
+    <div class="label">📌 고정 작성 기준 (모든 글 항상 적용 · 코드 내장)</div>
+    <ol style="margin:6px 0 18px;padding-left:20px">
+      ${(d.requests.baseline || []).map((r) => `<li style="margin:4px 0">${esc(r)}</li>`).join("")}
+    </ol>
+    <div class="label">공통 편집 지침 (운영자 수정 가능)</div>
+    <div style="margin:6px 0 16px">${d.requests.notes ? esc(d.requests.notes) : "<span class=mini>아직 없음 — requests.json 의 notes 에 적어주세요. 예: '존댓말, 정부 공식 출처 필수, 표 적극 활용'</span>"}</div>
+    <div class="label">요청 주제 (${d.requests.pendingCount}건 대기)</div>
+    <table style="margin-top:6px"><thead><tr><th>제목</th><th>카테고리</th><th>상태</th><th>메모</th></tr></thead><tbody>
+    ${d.requests.topics.length ? d.requests.topics.map((t) => `<tr>
+        <td>${esc(t.title)}</td><td>${esc(catName(t.category))}</td>
+        <td><span class="badge ${t.status === "done" ? "b-done" : t.status === "pending" ? "b-manual" : "b-na"}">${t.status === "done" ? "발행됨" : t.status === "pending" ? "대기" : esc(t.status)}</span></td>
+        <td class="d">${esc(t.note || "")}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="mini">등록된 요청이 없습니다.</td></tr>`}
+    </tbody></table>
+  </div></section>`;
 
   // ===== 탭2: 자체 사이트 =====
   const siteTab = `
