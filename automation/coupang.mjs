@@ -13,13 +13,19 @@ import { ROOT, readJson } from "./lib.mjs";
 import { site } from "../config/site.config.js";
 
 const LINKS_FILE = path.join(ROOT, "config", "coupang-links.json");
+// API 딥링크 캐시(coupang-resolve.mjs 가 생성): { "검색어": "https://link.coupang.com/a/..." }
+const CACHE_FILE = path.join(ROOT, "config", "coupang-links-cache.json");
 let LINKS = {};
+let CACHE = {};
 try {
   if (fs.existsSync(LINKS_FILE)) LINKS = readJson(LINKS_FILE);
 } catch { LINKS = {}; }
+try {
+  if (fs.existsSync(CACHE_FILE)) CACHE = readJson(CACHE_FILE);
+} catch { CACHE = {}; }
 
 // 카테고리별 추천 상품 (글 주제와 자연스럽게 연결 — 클릭·전환율↑)
-const PRODUCTS = {
+export const PRODUCTS = {
   season: [
     { name: "휴대용 넥쿨러·미니 선풍기", kw: "넥쿨러" },
     { name: "제습기·제습제 (장마·곰팡이 대비)", kw: "제습기" },
@@ -49,28 +55,47 @@ const PRODUCTS = {
     { name: "포토카드 바인더", kw: "포토카드 바인더" },
   ],
 };
-const FALLBACK = [
+export const FALLBACK = [
   { name: "휴대용 선풍기", kw: "휴대용 선풍기" },
   { name: "대용량 보조배터리", kw: "보조배터리" },
 ];
+
+/** 전 카테고리에서 쓰이는 (검색어 → 검색 URL) 유니크 목록 — 딥링크 사전 생성용 */
+export function allSearchTargets() {
+  const seen = new Set();
+  const out = [];
+  for (const list of [...Object.values(PRODUCTS), FALLBACK]) {
+    for (const p of list) {
+      if (seen.has(p.kw)) continue;
+      seen.add(p.kw);
+      out.push({ kw: p.kw, url: `https://www.coupang.com/np/search?channel=user&q=${encodeURIComponent(p.kw)}` });
+    }
+  }
+  return out;
+}
 
 const enc = (s) => encodeURIComponent(String(s));
 const esc = (s) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** 쿠팡 파트너스가 실제로 설정되어 있는가(추적 링크 or 파트너 ID 존재) */
+/** 쿠팡 파트너스가 실제로 설정되어 있는가(추적 링크 · API 캐시 · 파트너 ID 중 하나라도) */
 export function coupangConfigured() {
   const anyLink = Object.entries(LINKS).some(([k, v]) => !k.startsWith("_") && typeof v === "string" && v.trim());
-  return !!(site.affiliate?.coupang?.partnerId || anyLink);
+  const anyCache = Object.keys(CACHE).length > 0;
+  return !!(site.affiliate?.coupang?.partnerId || anyLink || anyCache);
 }
 
-/** 카테고리 추적 링크 우선순위: 카테고리 → default → 검색 링크(대체) */
+/** 추적 링크 우선순위:
+ *  ① config 카테고리 링크(운영자 수동 지정) → ② API 딥링크 캐시(상품별) →
+ *  ③ config default 링크 → ④ 쿠팡 검색(대체, 추적 안 됨) */
 function linkFor(category, kw) {
   const cat = (LINKS[category] || "").trim();
+  const cached = (CACHE[kw] || "").trim();
   const def = (LINKS.default || "").trim();
   if (cat) return { href: cat, tracked: true };
+  if (cached) return { href: cached, tracked: true };
   if (def) return { href: def, tracked: true };
-  // 대체: 쿠팡 검색 (작동하지만 수익 추적은 안 됨 — 운영자가 링크 넣기 전 임시)
+  // 대체: 쿠팡 검색 (작동하지만 수익 추적은 안 됨 — API 키/링크 등록 전 임시)
   return { href: `https://www.coupang.com/np/search?channel=user&q=${enc(kw)}`, tracked: false };
 }
 

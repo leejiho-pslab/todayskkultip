@@ -43,6 +43,9 @@ function runSoft(scriptRelPath, label) {
     }
   }
 
+  // 1.5) 쿠팡 딥링크 사전 생성 (API 키 있을 때만 — 없으면 검색 링크로 대체)
+  runSoft("automation/coupang-resolve.mjs", "1.5) 쿠팡 추적 링크 생성");
+
   run("automation/build.mjs", "2) 정적 사이트 빌드");
 
   if (doBlogger) {

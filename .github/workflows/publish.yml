@@ -99,6 +99,9 @@ jobs:
           TABOOLA_MODE: ${{ vars.TABOOLA_MODE }}
           NAVER_AD_SCRIPT: ${{ vars.NAVER_AD_SCRIPT }}
           COUPANG_PARTNER_ID: ${{ vars.COUPANG_PARTNER_ID }}
+          COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
+          COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
+          COUPANG_SUBID: ${{ vars.COUPANG_SUBID }}
           NAVER_CONNECT_ID: ${{ vars.NAVER_CONNECT_ID }}
           GA4_ID: ${{ vars.GA4_ID }}
           GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
