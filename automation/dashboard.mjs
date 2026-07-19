@@ -12,6 +12,7 @@ import { PUBLIC_DIR, ROOT, ensureDir, loadPosts, readJson, todayKST, nowKST } fr
 import { runAudit } from "./audit.mjs";
 import { pickTopics } from "./topic-picker.mjs";
 import { listTopicsForDashboard, editorialNotes } from "./requests.mjs";
+import { writeNaverDrafts } from "./naver-drafts.mjs";
 
 function esc(s = "") {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -350,6 +351,8 @@ const STYLE = `
 :root{--bg:#0f172a;--card:#1e293b;--fg:#e2e8f0;--mut:#94a3b8;--ok:#22c55e;--no:#f43f5e;--na:#475569;--ac:#38bdf8;--line:#334155}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6}
 .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 80px}
+.copybtn{background:var(--ac);color:#04202f;border:0;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:12px;margin-right:4px}
+.copybtn:disabled{background:var(--ok);color:#04240f}
 h1{font-size:24px;margin:0 0 4px}.sub{color:var(--mut);font-size:14px;margin-bottom:24px}
 .grid{display:grid;gap:16px}.cols{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
@@ -504,8 +507,8 @@ function render(d) {
     todos.push({ t: `워드프레스 백필 자동 진행 중 — 대기 ${ch.wordpress.pending}편`, s: "자동", b: "b-auto",
       d: "매 실행 2편씩 자동 발행됩니다. 운영자가 할 일은 없습니다." });
   if ((site.profile || "default") === "default")
-    todos.push({ t: "네이버 블로그 수동 발행 루틴", s: "수동", b: "b-manual",
-      d: `<a href="#naver" onclick="showTab('naver')">네이버 탭</a>에서 원고를 내려받아 blog.naver.com 에 주 2~3회 붙여넣어 주세요.` });
+    todos.push({ t: "네이버 블로그 복붙 발행 (주 2~3회)", s: "수동", b: "b-manual",
+      d: `<a href="#naver" onclick="showTab('naver')">네이버 탭</a>의 🛒 복붙 발행 시스템에서 [제목]·[📋 원고] 복사 → 붙여넣기 → 상품 카드 3개 삽입 → 발행. 글당 5~10분.` });
   if (!d.report.revenue.total)
     todos.push({ t: "첫 수익 발생 시 기록", s: "나중", b: "b-na",
       d: `수익이 확인되면 <a href="${esc(d.revenueEditUrl)}" target="_blank">revenue.json</a> 에 한 줄 추가 → 리포트 탭에 집계됩니다.` });
@@ -739,18 +742,41 @@ ${scheduleSection()}
   </tbody></table></div></section>`;
 
   // ===== 탭4: 네이버 블로그 =====
+  const nd = d.naverDrafts || [];
   const naverTab = `
-<section><h2>🟢 네이버 블로그</h2>
+<section><h2>🛒 복붙 발행 시스템 <span class="mini">(쇼핑커넥트 수익형 · 원고 ${nd.length}편 준비됨)</span></h2>
+  <div class="sub">버튼 한 번으로 <b>서식·추천 상품 슬롯·수익 고지문</b>이 포함된 원고가 복사됩니다.
+    네이버 글쓰기 화면에 붙여넣기(Ctrl+V)만 하면 됩니다.</div>
   <div class="card">
-    <div class="set"><div><span class="dot off"></span>자동 발행 상태</div><div class="v">현재 제외</div></div>
-    <div class="set"><div>사유</div><div class="v">네이버는 개인 블로그 글쓰기 공식 API가 없음</div></div>
+    <div class="label">발행 4단계 (글당 5~10분)</div>
+    <div class="row"><div>① <a href="https://blog.naver.com/GoBlogWrite.naver" target="_blank"><b>네이버 글쓰기 열기</b> ↗</a> (로그인돼 있으면 바로 글쓰기 화면)</div></div>
+    <div class="row"><div>② 아래 표 <b>[제목]</b> 버튼 → 화면 <b>제목칸</b>에 붙여넣기</div></div>
+    <div class="row"><div>③ <b>[📋 원고]</b> 버튼 → 화면 <b>본문칸</b>에 붙여넣기</div></div>
+    <div class="row"><div>④ 본문 속 <b>파란 박스</b>가 시키는 대로 <b>글감→쇼핑</b>에서 상품 카드 3개 삽입 → 발행.
+      카드가 상품 <b>공식 이미지·가격·판매처 출처</b>를 자동으로 넣어주고, 쇼핑커넥트 연동 채널이면 <b>수수료 링크</b>가 됩니다.</div></div>
   </div>
-  <div class="note">
-    <b>대안 옵션</b><br>
-    1) <b>반자동</b>: 자동 생성된 원고를 다운로드해 네이버 에디터에서 <b>다듬어</b> 발행(현재 권장 — 아래 주의 참고).<br>
-    2) <b>비공식 자동화</b>(Selenium 등): 네이버 이용약관 위반·계정 차단 위험이 있어 미적용.<br>
-    추후 네이버 공식 채널/연동 정책이 열리면 이 채널을 활성화할 수 있도록 구조가 준비돼 있습니다.
-  </div></section>
+  <div class="card" style="margin-top:12px"><table><thead><tr><th>후킹 제목(복사용)</th><th>카테고리</th><th>복사</th></tr></thead><tbody>
+  ${nd.slice().reverse().map((p) => `<tr>
+    <td>${esc(p.hooks[0])}<div class="d">원제: ${esc(p.title)} · ${esc(p.date)}</div></td>
+    <td>${esc(catName(p.category))}</td>
+    <td style="white-space:nowrap">
+      <button class="copybtn" onclick="copyText(this,${JSON.stringify(p.hooks[0]).replace(/"/g, "&quot;")})">제목</button>
+      <button class="copybtn" onclick="copyDraft(this,'${esc(p.slug)}')">📋 원고</button>
+      <a href="naver/${esc(p.slug)}.html" target="_blank" class="mini">열기</a>
+    </td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="note">⚠️ <b>운영 원칙 3가지</b><br>
+    1) <b>"최저가" 단정 금지</b> — 원고는 "오늘 최저가 확인" 같은 <b>확인 유도형</b> 문구만 씁니다(허위·과장광고 제재 예방).<br>
+    2) <b>상품 이미지는 반드시 글감 카드로</b> — 판매자 상세페이지 이미지를 복사해 붙이면 출처를 적어도 저작권 침해입니다.<br>
+    3) <b>유사문서 예방</b> — 제목은 후킹 제목을 쓰고, 붙여넣은 뒤 도입부 1~2문장을 본인 말로 바꾸면 더 안전합니다.</div>
+</section>
+
+<section><h2>🟢 채널 상태</h2>
+  <div class="card">
+    <div class="set"><div><span class="dot off"></span>자동 발행</div><div class="v">불가(네이버 공식 API 없음) → 위 복붙 시스템으로 반자동</div></div>
+    <div class="set"><div><span class="dot on"></span>쇼핑커넥트 수익화</div><div class="v">원고에 상품 슬롯·고지문 자동 포함</div></div>
+  </div>
+  <div class="note">비공식 자동화(Selenium 등)는 네이버 약관 위반·계정 차단 위험이 있어 쓰지 않습니다.</div></section>
 
 <section><h2>💰 네이버 애드포스트 (이 채널의 수익화)</h2>
   <div class="card">${setRows(d.affiliate.adpost)}
@@ -883,6 +909,26 @@ ${scheduleSection()}
 <div id="t-site" class="panel">${siteTab}</div>
 
 <script>
+// 네이버 복붙 시스템 — 서식(text/html) 유지 복사
+function copied(btn){var o=btn.textContent;btn.textContent='✅ 복사됨';btn.disabled=true;
+  setTimeout(function(){btn.textContent=o;btn.disabled=false},1600)}
+function copyText(btn,t){navigator.clipboard.writeText(t).then(function(){copied(btn)})
+  .catch(function(){prompt('자동 복사가 막혔습니다. 아래 내용을 직접 복사하세요.',t)})}
+async function copyDraft(btn,slug){
+  try{
+    var r=await fetch('naver/'+slug+'.frag.html',{cache:'no-store'});
+    if(!r.ok) throw new Error(r.status);
+    var html=await r.text();
+    var tmp=document.createElement('div');tmp.innerHTML=html;
+    var plain=tmp.innerText;
+    if(window.ClipboardItem&&navigator.clipboard.write){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html':new Blob([html],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'})})]);
+    }else{await navigator.clipboard.writeText(plain);}
+    copied(btn);
+  }catch(e){window.open('naver/'+slug+'.html','_blank');}
+}
 function showTab(key, btn){
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('.tabs button').forEach(function(b){b.classList.remove('active')});
@@ -961,11 +1007,15 @@ export function buildDashboard() {
   const data = collect();
   const dir = path.join(PUBLIC_DIR, "dashboard");
   ensureDir(dir);
+
+  // 네이버 복붙 원고를 먼저 생성해 목록을 렌더에 전달
+  const posts = loadPosts();
+  data.naverDrafts = writeNaverDrafts(dir, posts);
+
   fs.writeFileSync(path.join(dir, "index.html"), render(data), "utf8");
   fs.writeFileSync(path.join(dir, "data.json"), JSON.stringify(data, null, 2), "utf8");
 
   // 다운로드 산출물 (기획안·스케줄·원고)
-  const posts = loadPosts();
   writePlanFiles(dir, data.plan, data.generatedAt);
   writeDrafts(dir, posts);
   writeNaverPack(dir, data.plan, posts);
