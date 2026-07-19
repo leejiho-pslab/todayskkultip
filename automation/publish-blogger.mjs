@@ -16,6 +16,7 @@ import matter from "gray-matter";
 import { site } from "../config/site.config.js";
 import { POSTS_DIR, loadPosts, fixLeftoverBold } from "./lib.mjs";
 import { absUrl, affiliateDisclosureLines } from "./render.mjs";
+import { coupangBlock } from "./coupang.mjs";
 import { t } from "./i18n.mjs";
 
 function getClient() {
@@ -45,6 +46,7 @@ function bloggerHtml(post) {
   // 원문 링크: 검색엔진이 자체 사이트를 원본으로 인식하도록 유도(중복 콘텐츠 잠식 방지)
   const canonical = absUrl(post.path);
   return `${disclosure}${body}${faq}
+${coupangBlock(post)}
 <hr>
 <p><small>${t.syndicationFooter(canonical, site.name)}</small></p>`;
 }

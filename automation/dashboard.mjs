@@ -294,6 +294,14 @@ function collect() {
     editUrl,
     setupUrl,
     revenueEditUrl,
+    coupangEditUrl: `https://github.com/${gh.repo}/edit/${gh.branch}/config/coupang-links.json`,
+    coupangLinks: (() => {
+      try {
+        const j = readJson(path.join(ROOT, "config", "coupang-links.json"));
+        const cats = Object.entries(j).filter(([k]) => !k.startsWith("_"));
+        return { total: cats.length, filled: cats.filter(([, v]) => typeof v === "string" && v.trim()).length };
+      } catch { return { total: 0, filled: 0 }; }
+    })(),
     // 사이트 간 교차 표시용 요약 — 다른 사이트 대시보드가 이 data.json 을 fetch 해 사용
     summary: {
       profile: site.profile || "default",
@@ -842,8 +850,19 @@ ${scheduleSection()}
     <div class="note">가입: <a href="https://partners.coupang.com" target="_blank">partners.coupang.com</a> → 가입 후 발급되는 채널(트래킹) ID를
       GitHub <b>Variables</b>에 <code>COUPANG_PARTNER_ID</code>로 등록하면 연동됩니다.<br>
       ⚠️ 정책상 링크가 포함된 글에는 <b>"이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다."</b> 문구를 반드시 표시해야 하며,
-      본 사이트는 글 frontmatter에 <code>affiliate: [coupang]</code>이 있으면 이 문구를 자동으로 삽입합니다.<br>
+      본 사이트는 <b>모든 글에 쿠팡 상품 블록을 자동 삽입</b>하므로 이 문구도 자동으로 노출됩니다.<br>
       💡 <b>최종 승인</b>은 누적 판매금액 15만원 도달 시 자동 심사되므로, 가입 직후부터 활동 실적을 쌓는 것이 중요합니다.</div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="label">🔁 쿠팡 상품 링크 자동 삽입 (애드센스와 2중 수익)</div>
+    <div class="sub">모든 글 하단에 카테고리별 <b>쿠팡 최저가 확인</b> 상품 블록이 자동으로 들어갑니다.
+      애드센스 배너와 <b>같은 페이지에 공존</b>해, 한 글에서 광고수익 + 제휴수수료가 동시에 발생합니다.</div>
+    <div class="set"><div><span class="dot ${d.coupangLinks.filled ? "on" : "off"}"></span>추적 링크 등록</div>
+      <div class="v">${d.coupangLinks.filled}/${d.coupangLinks.total} 카테고리 ${d.coupangLinks.filled ? "" : "(미등록 — 지금은 쿠팡 검색 링크로 대체돼 수익 추적 안 됨)"}</div></div>
+    <div class="note">📌 <b>수익 추적을 켜려면</b>: 쿠팡 파트너스에서 카테고리별 링크(<code>https://link.coupang.com/a/...</code>)를 한 번만 생성해
+      <a href="${esc(d.coupangEditUrl)}" target="_blank">✏️ config/coupang-links.json 에 붙여넣기</a> → 저장하면 다음 빌드부터 해당 카테고리 모든 글에 추적 링크가 자동 적용됩니다.<br>
+      링크를 넣기 전에도 블록은 쿠팡 검색으로 연결되어 작동하지만, <b>수수료 추적은 링크 등록 후부터</b> 됩니다.<br>
+      ⚖️ 문구 정책: "무조건 최저가" 같은 <b>단정 표현은 쓰지 않고</b> "쿠팡 최저가 확인" 등 확인 유도형으로 강조합니다(표시광고법·파트너스 정책 준수).</div>
   </div></section>
 
 <section><h2>3️⃣ Google AdSense (배너 광고) — 커스텀 도메인 필수</h2>

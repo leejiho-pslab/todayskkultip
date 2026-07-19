@@ -4,6 +4,7 @@
 // =============================================================
 import { site } from "../config/site.config.js";
 import { t } from "./i18n.mjs";
+import { coupangConfigured } from "./coupang.mjs";
 
 /** basePath 를 붙인 절대경로 (사이트 내부 링크용) */
 export function url(path = "/") {
@@ -92,12 +93,14 @@ export function affiliateDisclosure(post) {
   return `<div class="affiliate-disclosure">${lines.map((l) => esc(l)).join("<br>")}</div>`;
 }
 
-/** 고지 문구 텍스트 배열 — 블로거/워드프레스 발행 모듈에서도 재사용 */
+/** 고지 문구 텍스트 배열 — 블로거/워드프레스 발행 모듈에서도 재사용.
+ *  쿠팡 블록은 모든 글에 자동 삽입되므로, 쿠팡이 설정돼 있으면 글의 affiliate
+ *  태그와 무관하게 쿠팡 고지를 항상 포함한다(정책상 링크가 있으면 고지 필수). */
 export function affiliateDisclosureLines(post) {
-  const tags = post?.affiliate || [];
-  if (!tags.length) return [];
   const a = site.affiliate || {};
-  return tags.filter((t) => a[t]?.disclosure).map((t) => a[t].disclosure);
+  const tags = new Set(post?.affiliate || []);
+  if (site.lang !== "en" && coupangConfigured()) tags.add("coupang");
+  return [...tags].filter((t) => a[t]?.disclosure).map((t) => a[t].disclosure);
 }
 
 // ---------------- 분석/검증 ----------------

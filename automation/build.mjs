@@ -12,6 +12,7 @@ import {
   ROOT, PUBLIC_DIR, ensureDir, loadPosts, excerpt, todayKST, slugify, fixLeftoverBold,
 } from "./lib.mjs";
 import { buildDashboard } from "./dashboard.mjs";
+import { coupangBlock } from "./coupang.mjs";
 import { t } from "./i18n.mjs";
 import {
   head, header, footer, url, absUrl,
@@ -229,6 +230,7 @@ function buildPost(post, allPosts, validTags = new Set()) {
       ${adsenseUnit("top")}
       ${toc}
       ${bodyHtml}
+      ${coupangBlock(post)}
       ${adsenseUnit("bottom")}
       ${faqHtml}
       ${post.faqs && post.faqs.length ? adsenseUnit("inArticle") : ""}
