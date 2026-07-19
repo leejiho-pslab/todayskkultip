@@ -207,6 +207,7 @@ function collect() {
       label: "워드프레스", icon: "🔵", enabled: site.channels.wordpress.enabled,
       configured: wpConfigured, published: wpPub, pending: wpPosts.length - wpPub,
       secrets: wpSecrets, posts: wpPosts.map(mapPost), setupUrl,
+      url: (env.WORDPRESS_URL || "").replace(/\/+$/, ""),
     },
   };
   const activeChannels = [channels.site.enabled, channels.blogger.enabled, channels.naver.enabled, channels.wordpress.enabled].filter(Boolean).length;
@@ -732,6 +733,9 @@ ${scheduleSection()}
   // ===== 탭: 워드프레스 =====
   const wpTab = `
 <section><h2>🔵 워드프레스 상태</h2>
+  ${ch.wordpress.url ? `<div class="linkrow" style="margin-bottom:12px">
+    <a href="${esc(ch.wordpress.url)}" target="_blank">🔵 워드프레스 블로그 열기 ↗</a>
+    <a href="${esc(ch.wordpress.url)}/wp-admin" target="_blank">⚙️ 관리자(글 관리) ↗</a></div>` : ""}
   <div class="grid cols">
     <div class="card"><div class="label">연동 상태</div>
       <div class="kpi" style="font-size:22px">${ch.wordpress.configured ? "연동됨" : "연동 필요"}</div></div>
