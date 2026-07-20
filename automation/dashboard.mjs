@@ -13,6 +13,7 @@ import { runAudit } from "./audit.mjs";
 import { pickTopics } from "./topic-picker.mjs";
 import { listTopicsForDashboard, editorialNotes } from "./requests.mjs";
 import { writeNaverDrafts } from "./naver-drafts.mjs";
+import { researchForDashboard } from "./research-lib.mjs";
 
 function esc(s = "") {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -335,6 +336,8 @@ function collect() {
       revenue: { records: revenueRecords, byMonth: revByMonth, bySource: revBySource, total: revTotal },
       poolByCat, poolTotal: pool.length, poolDays,
     },
+    research: researchForDashboard(),
+    researchOnly: (() => { try { return !!readJson(path.join(ROOT, "config", "automation-flags.json")).researchOnly; } catch { return false; } })(),
     sites,
     channels,
     activeChannels,
@@ -923,6 +926,32 @@ ${scheduleSection()}
       해당 글 상단에 고지 문구가 자동 노출됩니다(<code>automation/render.mjs</code>의 <code>affiliateDisclosure()</code>).</p>
   </div></section>`;
 
+  // ===== 탭: 시장조사 (발행 주제 범위) =====
+  const rs = d.research || { scopes: [], total: 0, collectedAt: null };
+  const scopeCards = (rs.scopes || []).map((sc) => `
+    <details ${sc.items.length ? "open" : ""}>
+      <summary>${esc(sc.label)} <span class="mini">${sc.items.length}건 · ${esc(sc.source)}</span></summary>
+      <div class="d" style="margin:4px 0 10px">${esc(sc.desc)}</div>
+      ${sc.items.length ? sc.items.map((it) => `
+        <div class="row"><div><div>${esc(it.title)}</div>
+          <div class="d">${esc(it.source)} · ${esc(it.capturedAt || "")}${it.keywords?.length ? ` · ${esc(it.keywords.join(", "))}` : ""}</div></div></div>`).join("")
+        : `<div class="mini">아직 수집된 신호가 없습니다.</div>`}
+    </details>`).join("");
+  const researchTab = `
+<section><h2>🔎 시장조사 — 발행 주제 범위 <span class="mini">(수집 ${rs.total}건 · ${esc(rs.collectedAt || "미수집")})</span></h2>
+  <div class="sub">아래 7개 범위에서 수집한 시의성 신호입니다. <b>${d.researchOnly ? "발행 주제는 이 범위 안에서만 뽑히도록 제약이 켜져 있습니다(researchOnly)." : "현재 범위 제약이 꺼져 있습니다."}</b>
+    수집은 매일 자동 갱신되며(네이버 뉴스·데이터랩·유튜브 트렌드), 발행은 현재 <b>일시정지</b> 상태입니다.</div>
+  <div class="grid cols">
+    <div class="card"><div class="label">수집 신호</div><div class="kpi">${rs.total}<small> 건</small></div></div>
+    <div class="card"><div class="label">범위</div><div class="kpi">${(rs.scopes || []).length}<small> 개</small></div></div>
+    <div class="card"><div class="label">범위 제약</div><div class="kpi" style="font-size:20px">${d.researchOnly ? "ON ✅" : "OFF"}</div></div>
+    <div class="card"><div class="label">발행 상태</div><div class="kpi" style="font-size:20px">⏸ 정지</div></div>
+  </div>
+  <div class="card" style="margin-top:14px">${scopeCards}</div>
+  <div class="note">📌 이 신호들이 발행 주제의 <b>재료</b>가 됩니다. 발행을 재개하면 글 주제는 이 범위 안에서만 생성됩니다.
+    범위를 넓히거나 좁히려면 <code>config/research-scope.json</code>, 제약 on/off 는 <code>config/automation-flags.json</code> 의 <code>researchOnly</code> 로 조정합니다.</div>
+</section>`;
+
   return `<!doctype html><html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
@@ -933,6 +962,7 @@ ${scheduleSection()}
 
 <div class="tabs">
   <button data-tab="all" onclick="showTab('all',this)">📊 전체</button>
+  <button data-tab="research" onclick="showTab('research',this)">🔎 시장조사</button>
   <button data-tab="report" onclick="showTab('report',this)">📈 리포트</button>
   <button data-tab="naver" onclick="showTab('naver',this)">🟢 네이버 블로그 · 1순위</button>
   <button data-tab="blogger" onclick="showTab('blogger',this)">📝 구글 블로거 · 2순위</button>
@@ -942,6 +972,7 @@ ${scheduleSection()}
 </div>
 
 <div id="t-all" class="panel">${overview}</div>
+<div id="t-research" class="panel">${researchTab}</div>
 <div id="t-report" class="panel">${reportTab}</div>
 <div id="t-naver" class="panel">${naverTab}</div>
 <div id="t-blogger" class="panel">${bloggerTab}</div>

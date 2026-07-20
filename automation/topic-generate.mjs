@@ -11,6 +11,27 @@ import Anthropic from "@anthropic-ai/sdk";
 import { site } from "../config/site.config.js";
 import { ROOT, readJson, nowKST, existingTitles } from "./lib.mjs";
 import { pickTopics, GENERATED_FILE } from "./topic-picker.mjs";
+import { researchTopicCandidates } from "./research-lib.mjs";
+
+// 발행 자동화 플래그 (researchOnly: 시장조사 범위 안에서만 주제 발굴)
+function flags() {
+  try { return readJson(path.join(ROOT, "config", "automation-flags.json")); }
+  catch { return {}; }
+}
+
+/** researchOnly 일 때 프롬프트에 넣을 '허용 범위' 지시문 — 시장조사 신호 목록 기반 */
+function researchDirective(isEn) {
+  const cands = researchTopicCandidates();
+  if (!cands.length) return "";
+  const lines = cands.map((c) => `- ${c.title}${c.keywords?.length ? ` (${c.keywords.join(", ")})` : ""}`).join("\n");
+  return isEn
+    ? `\n[MANDATORY SCOPE — market research]
+Only propose topics that clearly relate to one of the market-research signals below (current trends/issues/events/season). Do NOT invent topics outside this scope.
+${lines}\n`
+    : `\n[필수 범위 — 시장조사]
+아래 시장조사 신호(현재 트렌드/이슈/행사/시즌) 중 하나와 명확히 연결되는 주제만 제안하세요. 이 범위를 벗어난 주제는 금지합니다.
+${lines}\n`;
+}
 
 const SEASONAL_FILE = path.join(ROOT, "config", "topics", `${site.topicsPrefix}seasonal-topics.json`);
 const MODEL = process.env.CONTENT_MODEL || "claude-sonnet-4-6";
@@ -92,6 +113,8 @@ export async function ensureTopicPool(min = 6) {
   ].map((t) => t.title);
   const exclusion = [...new Set([...used, ...poolTitles])].join("\n- ");
 
+  const researchOnly = !!flags().researchOnly;
+  const scopeBlock = researchOnly ? researchDirective(IS_EN) : "";
   const cats = site.categories.map((c) => `${c.slug}: ${c.name} — ${c.desc}`).join("\n");
   const prompt = IS_EN
     ? `You are the content planner of "${site.name}", an English-language blog about Korea for a global audience.
@@ -109,7 +132,7 @@ ${cats}
 4. Distribute evenly across the 5 categories
 5. Must NOT overlap with or resemble any of these existing topics:
 - ${exclusion}
-
+${scopeBlock}
 You MUST call the save_topics tool to store the result.`
     : `당신은 한국 ${site.niche} 블로그 "${site.name}"의 콘텐츠 기획자입니다.
 오늘은 ${kst.toISOString().slice(0, 10)} (${month}월)입니다. 주제 제목에 연도를 넣을 경우
