@@ -29,6 +29,22 @@ async function fetchSummary(site) {
 
 function num(v) { return v == null ? "?" : v; }
 
+// 채널(블로거/워드프레스) 셀: 미설정이면 "—", 설정됐으면 "발행 N / 대기 M"
+function chCell(configured, pub, pending) {
+  if (!configured) return `<span style="color:#bbb">—</span>`;
+  const p = pending || 0;
+  return `발행 <b>${num(pub)}</b> / 대기 ${p}${p > 0 ? ` <span style="color:#1a7f37">▲</span>` : ""}`;
+}
+
+function channelRow(r) {
+  if (!r.ok) return `<tr><td>${r.name}</td><td colspan="2" style="color:#c00">확인 실패</td></tr>`;
+  const s = r.s;
+  return `<tr>
+    <td><a href="${r.url}">${r.name}</a></td>
+    <td style="text-align:center">${chCell(s.bloggerConfigured, s.bloggerPublished, s.bloggerPending)}</td>
+    <td style="text-align:center">${chCell(s.wpConfigured, s.wpPublished, s.wpPending)}</td></tr>`;
+}
+
 function row(r) {
   if (!r.ok) {
     return `<tr><td>${r.name}</td><td colspan="5" style="color:#c00">확인 실패 (${r.err}) — 배포 지연/일시 오류일 수 있음</td></tr>`;
@@ -84,6 +100,15 @@ async function main() {
     <th style="padding:8px">누적</th><th style="padding:8px">남은주제</th><th style="padding:8px">상태</th></tr></thead>
   <tbody>${results.map(row).join("")}</tbody>
 </table>
+
+<h3 style="margin:20px 0 6px;font-size:15px">📮 채널별 발행 현황 (블로거 · 워드프레스)</h3>
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+  <thead><tr style="background:#f9fafb;text-align:center">
+    <th style="text-align:left;padding:8px">사이트</th>
+    <th style="padding:8px">📝 구글 블로거</th><th style="padding:8px">🔵 워드프레스</th></tr></thead>
+  <tbody>${results.map(channelRow).join("")}</tbody>
+</table>
+<div style="color:#9ca3af;font-size:11px;margin-top:4px">※ "대기 ▲"는 다음 실행에서 자동 발행될 글 수입니다(회당 최대 2편 드립). "—"는 해당 사이트에서 그 채널 미사용.</div>
 
 ${notes.length ? `<div style="margin-top:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.7">
   ${notes.map((n) => `• ${n}`).join("<br>")}</div>` : ""}
