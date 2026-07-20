@@ -1,0 +1,54 @@
+name: 데일리 발행 리포트 (Gmail 발송)
+
+# 매일 3개 사이트의 발행 현황을 집계해 운영자 Gmail 로 발송한다.
+# - 메인 site 레포에서만 동작(위성 레포는 daily-report.mjs 가 스스로 건너뜀)
+# - 발송은 Gmail 앱 비밀번호(Secret: GMAIL_APP_PASSWORD)와
+#   보내는/받는 주소(Variable: GMAIL_ADDRESS)가 등록됐을 때만 실행됨
+#   → 미등록이면 리포트만 만들고 조용히 건너뜀(오류 아님)
+
+on:
+  schedule:
+    - cron: "40 12 * * *" # 매일 21:40 KST (마지막 발행 이후)
+  workflow_dispatch: {} # 수동 테스트 발송
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    env:
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      GMAIL_ADDRESS: ${{ vars.GMAIL_ADDRESS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci || npm install
+
+      - name: 리포트 생성
+        id: gen
+        continue-on-error: true # 위성 레포는 종료코드 78 로 건너뜀 — 실패 처리 안 함
+        env:
+          SITE_PROFILE: ${{ vars.SITE_PROFILE }}
+        run: node automation/daily-report.mjs
+
+      - name: Gmail 발송
+        if: steps.gen.outcome == 'success' && env.GMAIL_APP_PASSWORD != '' && env.GMAIL_ADDRESS != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ vars.GMAIL_ADDRESS }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          from: 데일리 발행 리포트 <${{ vars.GMAIL_ADDRESS }}>
+          to: ${{ vars.GMAIL_ADDRESS }}
+          subject: ${{ steps.gen.outputs.subject }}
+          html_body: file://report.html
+
+      - name: 발송 조건 안내(미설정 시)
+        if: steps.gen.outcome == 'success' && (env.GMAIL_APP_PASSWORD == '' || env.GMAIL_ADDRESS == '')
+        run: echo "GMAIL_ADDRESS(Variable) 또는 GMAIL_APP_PASSWORD(Secret) 미설정 — 리포트 생성만 하고 발송은 건너뜁니다."

@@ -317,10 +317,14 @@ function collect() {
       url: site.url,
       lang: site.lang,
       totalPosts: posts.length,
+      today: daily[daily.length - 1]?.count || 0,
       last7d: daily.slice(-7).reduce((a, x) => a + x.count, 0),
       bloggerPublished,
+      wpPublished: wpPub,
+      wpPending: wpPosts.length - wpPub,
       poolTotal: pool.length,
       poolDays,
+      paused: (() => { try { return !!readJson(path.join(ROOT, "config", "automation-flags.json")).paused; } catch { return false; } })(),
       generatedAt: todayKST(),
     },
     report: {
@@ -501,8 +505,9 @@ function render(d) {
       <div class="label">${cur ? "● 지금 보는 사이트" : "🌐 위성 사이트"} · ${esc(s.niche)}</div>
       <div style="font-weight:800;font-size:18px">${esc(s.name)}</div>
       <div class="chl" style="margin:10px 0 4px">
-        <span class="s-posts">${cur ? `발행 ${sm.totalPosts}편` : "…"}</span>
+        <span class="s-today">${cur ? `오늘 ${sm.today}편` : "…"}</span>
         <span class="s-week">${cur ? `최근7일 ${sm.last7d}편` : "…"}</span>
+        <span class="s-posts">${cur ? `누적 ${sm.totalPosts}편` : "…"}</span>
         <span class="s-pool">${cur ? `남은주제 ${sm.poolTotal}개` : "…"}</span>
       </div>
       <div style="margin-top:6px"><span class="s-status badge ${cur ? "b-done" : "b-na"}">${cur ? "정상 운영" : "확인 중…"}</span></div>
@@ -980,8 +985,9 @@ document.addEventListener('DOMContentLoaded',function(){
       if(!r.ok) throw new Error(r.status); return r.json();
     }).then(function(j){
       var s=j.summary||{};
-      el.querySelector('.s-posts').textContent='발행 '+(s.totalPosts!=null?s.totalPosts:'?')+'편';
+      el.querySelector('.s-today').textContent='오늘 '+(s.today!=null?s.today:'?')+'편';
       el.querySelector('.s-week').textContent='최근7일 '+(s.last7d!=null?s.last7d:'?')+'편';
+      el.querySelector('.s-posts').textContent='누적 '+(s.totalPosts!=null?s.totalPosts:'?')+'편';
       el.querySelector('.s-pool').textContent='남은주제 '+(s.poolTotal!=null?s.poolTotal:'?')+'개';
       var st=el.querySelector('.s-status');
       st.textContent='정상 운영 · 갱신 '+(s.generatedAt||'');
