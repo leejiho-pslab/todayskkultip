@@ -1,0 +1,49 @@
+name: 시장조사 수집 (네이버 오픈API)
+
+# 매일 네이버 뉴스 검색 + 데이터랩(검색어트렌드)으로 시의성 신호를 수집해
+# config/market-research.json 을 갱신하고 커밋한다(→ 대시보드 시장조사 탭 자동 반영).
+# NAVER_CLIENT_ID / NAVER_CLIENT_SECRET (Secrets) 가 있을 때만 동작.
+
+on:
+  schedule:
+    - cron: "50 21 * * *" # 매일 06:50 KST
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "research-collect"
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci || npm install
+
+      - name: 시장조사 수집
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: node automation/research-collect.mjs
+
+      - name: 갱신분 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add config/market-research.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: 시장조사 신호 갱신 ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push
+          else
+            echo "변경 없음 — 커밋 생략"
+          fi
