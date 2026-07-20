@@ -39,7 +39,9 @@ function runSoft(scriptRelPath, label) {
     if (!process.env.ANTHROPIC_API_KEY) {
       console.warn("[run-all] ANTHROPIC_API_KEY 없음 — 글 생성 건너뜀(빌드만 수행).");
     } else {
-      run("automation/generate.mjs", "1) 콘텐츠 생성");
+      // 소프트 실행: 글 생성이 실패해도(API 한도 초과·일시 오류 등) 기존 글의
+      // 빌드·배포·발행(WP 백필/블로거)은 계속 진행되어야 사이트가 멈추지 않는다.
+      runSoft("automation/generate.mjs", "1) 콘텐츠 생성");
     }
   }
 
