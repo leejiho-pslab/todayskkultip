@@ -11,8 +11,15 @@
 // =============================================================
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { ROOT } from "./lib.mjs";
+import { ROOT, readJson } from "./lib.mjs";
 import { site } from "../config/site.config.js";
+
+// 발행 일시정지 스위치 (config/automation-flags.json) — paused=true 면 생성·채널발행을
+// 멈추고 빌드·배포만 수행한다(사이트는 계속 살아있음). 전략 변경 대기 등에서 사용.
+const FLAGS = (() => {
+  try { return readJson(path.join(ROOT, "config", "automation-flags.json")); }
+  catch { return {}; }
+})();
 
 function run(scriptRelPath, label) {
   console.log(`\n=== ${label} ===`);
@@ -31,9 +38,13 @@ function runSoft(scriptRelPath, label) {
 }
 
 (async () => {
-  const doGenerate = process.env.GENERATE !== "false";
+  const paused = !!FLAGS.paused;
+  if (paused) {
+    console.warn("[run-all] ⏸ 발행 일시정지(automation-flags.paused=true) — 새 글 생성·채널 발행을 건너뛰고 빌드·배포만 수행합니다.");
+  }
+  const doGenerate = process.env.GENERATE !== "false" && !paused;
   const doBlogger =
-    process.env.PUBLISH_BLOGGER === "true" && site.channels.blogger.enabled;
+    process.env.PUBLISH_BLOGGER === "true" && site.channels.blogger.enabled && !paused;
 
   if (doGenerate) {
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -61,7 +72,7 @@ function runSoft(scriptRelPath, label) {
   // 4) 워드프레스 발행 — 채널이 config 에서 활성화돼 있고 자격증명이 있을 때만
   //    (환경변수만으로 강제되지 않도록 config enabled 를 단일 스위치로 사용)
   const wpReady = !!(process.env.WPCOM_SITE && process.env.WPCOM_TOKEN) || !!process.env.WORDPRESS_URL;
-  if (site.channels.wordpress.enabled && wpReady) {
+  if (!paused && site.channels.wordpress.enabled && wpReady) {
     runSoft("automation/publish-wordpress.mjs", "4) 워드프레스 발행");
   }
 

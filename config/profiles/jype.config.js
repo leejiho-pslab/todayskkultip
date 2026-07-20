@@ -16,8 +16,9 @@ export default {
   overrides: {
     name: "Korea Unboxed",
     tagline: "K-culture, food, travel & trends — everything Korea, unboxed",
+    // 네이버 서치어드바이저 권장 길이(≤80자)에 맞춘 짧은 설명. og:description 도 이 값을 씀.
     description:
-      "Your English guide to Korea: K-pop and K-drama culture, Korean food, travel itineraries, trends, and everyday life in Korea — published daily.",
+      "Your English guide to Korea: K-pop, K-drama, food, travel & daily life.",
     lang: "en",
     locale: "en_US",
     author: "Korea Unboxed Editorial Team",
