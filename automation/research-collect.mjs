@@ -39,6 +39,9 @@ async function searchNews(query, display = 8) {
   return (j.items || []).map((it) => ({ title: stripTags(it.title), link: it.originallink || it.link }));
 }
 
+// 유사 제목 중복 제거용 정규화 키(공백·기호 제거 후 앞 12자)
+const dupKey = (t) => t.replace(/[\s\W]+/g, "").slice(0, 12);
+
 // 데이터랩 검색어트렌드: 키워드별 최근 검색량 급상승도(최근 3일 평균 / 직전 평균)
 async function trendScores(keywords) {
   if (!keywords.length) return {};
@@ -78,6 +81,27 @@ const SEASON = {
   6: ["6월 제철: 매실·감자·오이", "장마 시작 대비", "여름 준비"],
 };
 
+// trend 후보: 계절 키워드(월별) + 상시 니치 + 커머스 브랜드. 데이터랩으로 검색량 랭킹.
+const SEASON_KW = {
+  7: ["제철음식", "장마", "폭염", "삼계탕", "제습기", "여름휴가"],
+  8: ["말복", "휴가철", "포도", "에어컨 전기요금", "태풍"],
+  9: ["추석 선물세트", "환절기", "전어", "단풍 여행"],
+  10: ["김장", "단풍", "꽃게", "핼러윈"],
+  11: ["수능", "김장", "굴", "블랙프라이데이"],
+  12: ["연말정산", "크리스마스", "방어", "송년회"],
+  1: ["새해 다이어리", "설날", "딸기", "겨울 여행"],
+  2: ["졸업 입학", "발렌타인", "설 연휴"],
+  3: ["새학기", "미세먼지", "벚꽃", "봄나물"],
+  4: ["벚꽃 축제", "봄 이사", "주꾸미", "환절기"],
+  5: ["가정의 달 선물", "어린이날", "봄 캠핑"],
+  6: ["장마 대비", "매실", "여름 준비", "감자"],
+};
+const TREND_CANDIDATES = [
+  ...(SEASON_KW[month] || []),
+  "정부지원금", "전기요금", "콘서트 티켓팅",   // 상시 핵심 니치
+  "무신사", "쿠팡", "올리브영",                 // 커머스 브랜드
+];
+
 async function main() {
   if (!ID || !SECRET) {
     console.log("[research] NAVER_CLIENT_ID/SECRET 없음 — 수집 건너뜀(기존 데이터 유지).");
@@ -89,29 +113,37 @@ async function main() {
   // 1) 뉴스 기반 범위 수집
   for (const [scope, queries] of Object.entries(NEWS)) {
     const seen = new Set();
+    const picked = [];
     for (const q of queries) {
       try {
         for (const n of await searchNews(q)) {
-          if (!n.title || seen.has(n.title)) continue;
-          seen.add(n.title);
-          items.push({ scope, title: n.title, source: "네이버 뉴스", url: n.link, capturedAt: today });
+          if (!n.title || n.title.length < 6) continue;
+          const k = dupKey(n.title);
+          if (seen.has(k)) continue;           // 언론사만 다른 유사 기사 제거
+          seen.add(k);
+          picked.push({ scope, title: n.title, source: "네이버 뉴스", url: n.link, capturedAt: today });
         }
       } catch (e) { errs.push(e.message); }
     }
-    // 범위별 상위 4건만 유지
-    const kept = items.filter((it) => it.scope === scope).slice(0, 4);
-    for (let i = items.length - 1; i >= 0; i--) if (items[i].scope === scope && !kept.includes(items[i])) items.splice(i, 1);
+    items.push(...picked.slice(0, 4)); // 범위별 상위 4건
   }
 
-  // 2) trend 범위: 뉴스 헤드라인에서 키워드 후보를 뽑아 데이터랩 급상승도로 랭킹
+  // 2) trend 범위: 의미 있는 후보 키워드(시즌+핵심 니치+커머스 브랜드)를 데이터랩
+  //    검색량으로 랭킹. 헤드라인 토큰화(파편 발생) 대신 큐레이션 후보를 쓴다.
+  //    score>1 = 최근 검색량 상승, ≈1 유지, <1 하락.
   try {
-    const headlines = await searchNews("실시간 급상승 이슈", 10);
-    // 헤드라인에서 2~3음절 이상 명사 후보(아주 단순 추출) — 상위 5개만 데이터랩 조회
-    const cand = [...new Set(headlines.flatMap((h) => h.title.split(/[\s\[\]"'·,…\-—()]+/)).filter((w) => w.length >= 2 && !/^[0-9]+$/.test(w)))].slice(0, 5);
-    const scores = await trendScores(cand);
-    const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    const scores = {};
+    for (let i = 0; i < TREND_CANDIDATES.length; i += 5) {
+      Object.assign(scores, await trendScores(TREND_CANDIDATES.slice(i, i + 5)));
+    }
+    const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]).slice(0, 6);
     for (const [kw, sc] of ranked) {
-      items.push({ scope: "trend", title: `${kw} (검색 급상승도 ${sc})`, keywords: [kw], score: sc, source: "네이버 데이터랩", capturedAt: today });
+      const rising = sc >= 1.1;
+      items.push({
+        scope: "trend",
+        title: `${rising ? "🔥 " : ""}${kw} — 검색지수 추세 ${sc}${rising ? " (상승)" : ""}`,
+        keywords: [kw], score: sc, source: "네이버 데이터랩(검색어트렌드)", capturedAt: today,
+      });
     }
   } catch (e) { errs.push(`trend: ${e.message}`); }
 
