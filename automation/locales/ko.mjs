@@ -31,6 +31,8 @@ export const ko = {
   olderPost: "이전 글 →",
   recentPosts: "🕐 최신 글",
   categoriesWidget: "🗂 카테고리",
+  tagsWidget: "🏷 태그",
+  moreAbout: "소개 보기",
 
   // ---- 목록/페이저 ----
   pagerPrev: "‹ 이전",

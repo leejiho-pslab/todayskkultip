@@ -111,20 +111,40 @@ function relatedGrid(post, allPosts) {
 }
 
 /** 글 페이지 사이드바 — 광고(스티키) + 최신글 + 카테고리 (내부 순환 링크) */
-function sidebar(post, allPosts) {
-  const recent = allPosts.filter((p) => p.path !== post.path).slice(0, 5);
+function sidebar(allPosts, currentPath = null) {
+  // 프로필(소개) 위젯 — 매거진형 블로그 공통 요소
+  const profile = `<div class="widget profile">
+    <div class="pf-avatar" aria-hidden="true">${esc(site.brandmark || "📝")}</div>
+    <strong class="pf-name">${esc(site.name)}</strong>
+    <p class="pf-bio">${esc(site.tagline || site.description || "")}</p>
+    <a class="pf-link" href="${url("/about/")}">${t.moreAbout || "소개 보기"}</a>
+  </div>`;
+  const recent = allPosts.filter((p) => p.path !== currentPath).slice(0, 6);
   const recentHtml = recent.length
-    ? `<div class="widget"><strong class="wt">${t.recentPosts}</strong><ul>${recent
-        .map((p) => `<li><a href="${url(p.path)}">${esc(p.title)}</a></li>`)
-        .join("")}</ul></div>`
+    ? `<div class="widget"><strong class="wt">${t.recentPosts}</strong>
+        <ul class="mini">${recent.map((p) => {
+          const cv = coverFor(p);
+          const th = cv ? `<img src="${url(cv)}" alt="${esc(p.title)}" loading="lazy">` : `<span class="noimg"></span>`;
+          return `<li><a href="${url(p.path)}">${th}<span>${esc(p.title)}</span></a></li>`;
+        }).join("")}</ul></div>`
     : "";
   const cats = site.categories
     .map((c) => `<li><a href="${url(`/category/${c.slug}/`)}">${esc(c.name)}</a></li>`)
     .join("");
+  // 태그 클라우드 — 빈도 높은 순 상위 14개
+  const tagCount = {};
+  allPosts.forEach((p) => (p.tags || []).forEach((tg) => (tagCount[tg] = (tagCount[tg] || 0) + 1)));
+  const topTags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 14)
+    .map(([tg]) => `<a class="tagchip" href="${url(`/tag/${slugify(tg)}/`)}">#${esc(tg)}</a>`).join("");
+  const tagsHtml = topTags
+    ? `<div class="widget"><strong class="wt">${t.tagsWidget || "태그"}</strong><div class="tagcloud">${topTags}</div></div>`
+    : "";
   return `<aside class="sidebar">
+    ${profile}
     ${adsenseUnit("sidebar")}
     ${recentHtml}
     <div class="widget"><strong class="wt">${t.categoriesWidget}</strong><ul>${cats}</ul></div>
+    ${tagsHtml}
     ${adsenseUnit("sidebar")}
   </aside>`;
 }
@@ -240,7 +260,7 @@ function buildPost(post, allPosts, validTags = new Set()) {
       ${prevNextNav(post, allPosts)}
       ${relatedHtml}
     </article>
-    ${sidebar(post, allPosts)}
+    ${sidebar(allPosts, post.path)}
     </div>` +
     footer();
 
@@ -252,13 +272,15 @@ function postCard(p) {
   const cover = coverFor(p);
   const thumb = cover
     ? `<a href="${url(p.path)}" class="thumb"><img src="${url(cover)}" alt="${esc(p.imageAlt || p.title)}" loading="lazy" width="1200" height="630"></a>`
-    : "";
+    : `<a href="${url(p.path)}" class="thumb noimg"></a>`;
   return `<li class="card">
     ${thumb}
-    <a href="${url(`/category/${p.category}/`)}" class="cat">${esc(catName(p.category))}</a>
-    <h2><a href="${url(p.path)}">${esc(p.title)}</a></h2>
-    <p class="excerpt">${esc(p.description || excerpt(p.body))}</p>
-    <div class="meta">${esc(p.date)}</div>
+    <div class="cardbody">
+      <a href="${url(`/category/${p.category}/`)}" class="cat">${esc(catName(p.category))}</a>
+      <h2><a href="${url(p.path)}">${esc(p.title)}</a></h2>
+      <p class="excerpt">${esc(p.description || excerpt(p.body))}</p>
+      <div class="meta">${esc(p.date)}</div>
+    </div>
   </li>`;
 }
 
@@ -311,13 +333,18 @@ function buildIndex(posts) {
         jsonld: page === 1 ? organizationJsonLd() : "",
       }) +
       header() +
-      `<section>
-         <h1 style="font-size:24px">${esc(site.tagline)}</h1>
-         <div class="chips">${chips}</div>
-         ${adsenseUnit("top")}
-         ${list}
-         ${pager("/", page, pages.length)}
-       </section>` +
+      `<div class="layout">
+         <div class="listcol">
+           <section>
+             <h1 style="font-size:24px">${esc(site.tagline)}</h1>
+             <div class="chips">${chips}</div>
+             ${adsenseUnit("top")}
+             ${list}
+             ${pager("/", page, pages.length)}
+           </section>
+         </div>
+         ${sidebar(posts)}
+       </div>` +
       footer();
     write(page === 1 ? "index.html" : path.join("page", String(page), "index.html"), html);
   });
@@ -341,11 +368,16 @@ function buildCategories(posts) {
           canonical: absUrl(rel),
         }) +
         header() +
-        `<h1 style="font-size:24px">${esc(c.name)}</h1>
-         <p style="color:var(--muted)">${esc(c.desc)}</p>
-         ${adsenseUnit("top")}
-         ${list}
-         ${pager(base, page, pages.length)}` +
+        `<div class="layout">
+           <div class="listcol">
+             <h1 style="font-size:24px">${esc(c.name)}</h1>
+             <p style="color:var(--muted)">${esc(c.desc)}</p>
+             ${adsenseUnit("top")}
+             ${list}
+             ${pager(base, page, pages.length)}
+           </div>
+           ${sidebar(posts)}
+         </div>` +
         footer();
       write(page === 1 ? path.join("category", c.slug, "index.html")
         : path.join("category", c.slug, "page", String(page), "index.html"), html);
@@ -416,7 +448,7 @@ function buildSearch(posts) {
         if(!q){out.innerHTML=HINT;return;}
         var r=data.filter(function(d){return (d.t+' '+d.c+' '+d.e+' '+d.g).toLowerCase().indexOf(q)>-1;}).slice(0,50);
         if(!r.length){out.innerHTML='<p class="mini" style="color:var(--muted)">'+esc(NORES.replace('{q}',q))+'</p>';return;}
-        out.innerHTML='<ul class="post-list">'+r.map(function(d){return '<li class="card"><span class="cat">'+esc(d.c)+'</span><h2><a href="'+d.u+'">'+esc(d.t)+'</a></h2><p class="excerpt">'+esc(d.e)+'</p></li>';}).join('')+'</ul>';
+        out.innerHTML='<ul class="post-list">'+r.map(function(d){return '<li class="card"><div class="cardbody"><span class="cat">'+esc(d.c)+'</span><h2><a href="'+d.u+'">'+esc(d.t)+'</a></h2><p class="excerpt">'+esc(d.e)+'</p></div></li>';}).join('')+'</ul>';
       }
       fetch('index.json').then(function(x){return x.json();}).then(function(j){data=j;
         var p=new URLSearchParams(location.search).get('q'); if(p){box.value=p; render(p);}

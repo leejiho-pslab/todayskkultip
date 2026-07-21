@@ -31,6 +31,8 @@ export const en = {
   olderPost: "Older post →",
   recentPosts: "🕐 Recent posts",
   categoriesWidget: "🗂 Categories",
+  tagsWidget: "🏷 Tags",
+  moreAbout: "About me",
 
   // ---- Lists / pager ----
   pagerPrev: "‹ Prev",
