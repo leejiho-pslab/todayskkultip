@@ -32,6 +32,9 @@ on:
       publish_wordpress:
         description: "워드프레스 발행 여부"
         default: "false"
+      publish_limit:
+        description: "채널당 회당 발행 상한 (백로그 플러시 시 크게)"
+        default: "2"
   push:
     branches: ["**"]
     paths:
@@ -145,6 +148,7 @@ jobs:
           WORDPRESS_USER: ${{ vars.WORDPRESS_USER }}
           WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
           WORDPRESS_STATUS: ${{ vars.WORDPRESS_STATUS }}
+          PUBLISH_LIMIT: ${{ github.event.inputs.publish_limit || vars.PUBLISH_LIMIT || '2' }}
         run: node automation/run-all.mjs
 
       # GENERATE=false 인 push 빌드에서도 채널 발행(WP/블로거)이 돌며 published 플래그가

@@ -19,17 +19,20 @@ function flags() {
   catch { return {}; }
 }
 
-/** researchOnly 일 때 프롬프트에 넣을 '허용 범위' 지시문 — 시장조사 신호 목록 기반 */
+/** researchOnly 일 때 프롬프트에 넣을 '허용 범위' 지시문 — 시장조사 신호 목록 기반.
+ *  목록은 검색량(데이터랩 점수) 높은 순으로 정렬돼 있어, 상위 신호부터 기획된다. */
 function researchDirective(isEn) {
   const cands = researchTopicCandidates();
   if (!cands.length) return "";
-  const lines = cands.map((c) => `- ${c.title}${c.keywords?.length ? ` (${c.keywords.join(", ")})` : ""}`).join("\n");
+  const lines = cands.map((c, i) =>
+    `${i + 1}. ${c.title}${c.keywords?.length ? ` (${c.keywords.join(", ")})` : ""}${c.score != null ? ` [검색지수 ${c.score}]` : ""}`
+  ).join("\n");
   return isEn
-    ? `\n[MANDATORY SCOPE — market research]
-Only propose topics that clearly relate to one of the market-research signals below (current trends/issues/events/season). Do NOT invent topics outside this scope.
+    ? `\n[MANDATORY SCOPE — market research, ordered by search volume]
+The list below is sorted by search volume (highest first). Only propose topics clearly tied to one of these signals, and prioritize the TOP of the list. Do NOT invent topics outside this scope.
 ${lines}\n`
-    : `\n[필수 범위 — 시장조사]
-아래 시장조사 신호(현재 트렌드/이슈/행사/시즌) 중 하나와 명확히 연결되는 주제만 제안하세요. 이 범위를 벗어난 주제는 금지합니다.
+    : `\n[필수 범위 — 시장조사 · 검색량 높은 순]
+아래 목록은 검색량이 높은 순서입니다. 이 신호 중 하나와 명확히 연결되는 주제만 제안하되, 목록 상위 신호를 우선 기획하세요. 범위 밖 주제는 금지합니다.
 ${lines}\n`;
 }
 

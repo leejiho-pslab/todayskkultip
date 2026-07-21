@@ -336,6 +336,11 @@ function collect() {
       revenue: { records: revenueRecords, byMonth: revByMonth, bySource: revBySource, total: revTotal },
       poolByCat, poolTotal: pool.length, poolDays,
     },
+    // 채널 바로가기 (기본 프로필 기준값 · 환경변수로 덮어쓰기 가능)
+    bloggerUrl: process.env.BLOGGER_BLOG_URL ||
+      ((site.profile || "default") === "default" ? "https://todays-kkultip.blogspot.com" : ""),
+    naverBlogUrl: process.env.NAVER_BLOG_URL ||
+      ((site.profile || "default") === "default" ? "https://blog.naver.com/astrape1" : ""),
     research: researchForDashboard(),
     researchOnly: (() => { try { return !!readJson(path.join(ROOT, "config", "automation-flags.json")).researchOnly; } catch { return false; } })(),
     sites,
@@ -557,31 +562,51 @@ function render(d) {
     <div class="kpi">${d.activeChannels}<small> / 4</small></div></div>
 </div>
 
-<section><h2>🌍 사이트 3개 한눈에 <span class="mini">(위성 사이트 숫자는 실시간 조회)</span></h2>
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">${siteCards}</div></section>
-
-<section><h2>📡 채널별 현황 <span class="mini">(연결 우선순위: 네이버 → 블로거 → 워드프레스 → 광고사이트)</span></h2>
-  <div class="grid cols">
-    <div class="card chcard" onclick="showTab('naver')">
-      <div class="label">${ch.naver.icon} ${ch.naver.label} <span class="badge b-manual">1순위</span></div>
-      <div class="kpi" style="font-size:24px">—</div>
-      <div class="chl"><span>수동(다운로드 제공)</span></div></div>
-    <div class="card chcard" onclick="showTab('blogger')">
-      <div class="label">${ch.blogger.icon} ${ch.blogger.label} <span class="badge b-manual">2순위</span></div>
-      <div class="kpi" style="font-size:24px">${ch.blogger.published}<small> 발행 / ${ch.blogger.pending} 대기</small></div>
-      <div class="chl"><span>${ch.blogger.configured ? "연동됨" : "연동 필요"}</span></div></div>
-    <div class="card chcard" onclick="showTab('wordpress')">
-      <div class="label">${ch.wordpress.icon} ${ch.wordpress.label} <span class="badge b-manual">3순위</span></div>
-      <div class="kpi" style="font-size:24px">${ch.wordpress.published}<small> 발행 / ${ch.wordpress.pending} 대기</small></div>
-      <div class="chl"><span>${ch.wordpress.configured ? "연동됨" : "연동 필요"}</span></div></div>
-    <div class="card chcard" onclick="showTab('ads')">
-      <div class="label">💰 광고사이트(수익화) <span class="badge b-manual">4순위</span></div>
-      <div class="kpi" style="font-size:24px">${d.adsenseDone + d.affiliateDone}<small>/${d.adsense.length + d.affiliateTotal} 준비됨</small></div>
-      <div class="chl"><span>쇼핑커넥트·쿠팡·AdSense·애드포스트</span></div></div>
-    <div class="card chcard" onclick="showTab('site')">
-      <div class="label">${ch.site.icon} ${ch.site.label} <span class="badge b-done">운영중</span></div>
-      <div class="kpi" style="font-size:24px">${ch.site.count}<small> 편 발행</small></div>
-      <div class="chl"><span>기준 채널</span></div></div>
+<section><h2>📡 채널 발행 보드 <span class="mini">(6개 채널 동일 우선순위 · 기획→발행 여부 중심)</span></h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    ${siteCards}
+    <div class="card">
+      <div class="label">🔵 워드프레스 블로그</div>
+      <div style="font-weight:800;font-size:18px">카페24 자체 호스팅</div>
+      <div class="chl" style="margin:10px 0 4px">
+        <span>발행 ${ch.wordpress.published}편</span>
+        <span>대기 ${ch.wordpress.pending}편</span>
+      </div>
+      <div style="margin-top:6px"><span class="badge ${ch.wordpress.configured ? "b-done" : "b-todo"}">${ch.wordpress.configured ? "자동 발행 중" : "연동 필요"}</span></div>
+      <div class="linkrow">
+        ${ch.wordpress.url ? `<a href="${esc(ch.wordpress.url)}" target="_blank">블로그 열기</a>
+        <a href="${esc(ch.wordpress.url)}/wp-admin" target="_blank">관리자</a>` : ""}
+        <a href="#wordpress" onclick="showTab('wordpress')">상세 탭</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">📝 구글 블로거</div>
+      <div style="font-weight:800;font-size:18px">Blogspot</div>
+      <div class="chl" style="margin:10px 0 4px">
+        <span>발행 ${ch.blogger.published}편</span>
+        <span>대기 ${ch.blogger.pending}편</span>
+      </div>
+      <div style="margin-top:6px"><span class="badge ${ch.blogger.configured ? "b-done" : "b-todo"}">${ch.blogger.configured ? "자동 발행 중" : "연동 필요"}</span></div>
+      <div class="linkrow">
+        ${d.bloggerUrl ? `<a href="${esc(d.bloggerUrl)}" target="_blank">블로그 열기</a>` : ""}
+        <a href="https://www.blogger.com" target="_blank">블로거 관리</a>
+        <a href="#blogger" onclick="showTab('blogger')">상세 탭</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">🟢 네이버 블로그 (원고만)</div>
+      <div style="font-weight:800;font-size:18px">복붙 발행</div>
+      <div class="chl" style="margin:10px 0 4px">
+        <span>원고 ${(d.naverDrafts || []).length}편 준비</span>
+        <span>수동 발행</span>
+      </div>
+      <div style="margin-top:6px"><span class="badge b-manual">복사 → 붙여넣기</span></div>
+      <div class="linkrow">
+        ${d.naverBlogUrl ? `<a href="${esc(d.naverBlogUrl)}" target="_blank">내 블로그</a>` : ""}
+        <a href="https://blog.naver.com/GoBlogWrite.naver" target="_blank">글쓰기</a>
+        <a href="#naver" onclick="showTab('naver')">원고 탭</a>
+      </div>
+    </div>
   </div></section>
 
 <section><h2>⏭ 다음 발행 3편 <span class="mini">(자동 · 매일 09:00/15:00/21:00 KST)</span></h2>
@@ -598,6 +623,29 @@ function render(d) {
     <div class="row"><div><div>${esc(x.t)} <span class="badge ${x.b}">${esc(x.s)}</span></div>
       <div class="d">${x.d}</div></div></div>`).join("")
     : "<div class=mini>지금 필요한 운영자 액션이 없습니다. 자동 발행이 계속됩니다.</div>"}
+  </div></section>
+
+<section><h2>🗂 장기 체크 <span class="mini">(가끔 열어보는 것들 — 접어둠)</span></h2>
+  <div class="card">
+    <details><summary>💰 애드센스 심사 (4개 도메인) <span class="mini">승인까지 2~4주</span></summary>
+      <div class="row"><div>starship-ent.ai.kr · todayskkultip.co.kr · jype.ai.kr · mycafe24(WP) — 전부 검토 요청됨.
+        승인 메일 도착 시 슬롯 ID 4종 등록 + 자동광고 ON 이 다음 액션.</div>
+        <div><a href="https://adsense.google.com/adsense/naui/sites" target="_blank">심사 상태 ↗</a></div></div></details>
+    <details><summary>🛒 쿠팡 파트너스 최종승인 <span class="mini">누적 판매 15만원 도달 시 자동 심사</span></summary>
+      <div class="row"><div>승인되면 오픈API 키 발급 가능 → 등록 시 글마다 상품별 자동 추적 링크로 업그레이드(코드 준비됨).</div>
+        <div><a href="https://partners.coupang.com" target="_blank">실적 확인 ↗</a></div></div></details>
+    <details><summary>🟢 네이버 애드포스트 <span class="mini">블로그 개설 90일+ · 공개 글 50개+</span></summary>
+      <div class="row"><div>요건 충족 시 신청 — 복붙 발행을 꾸준히 하면 자연 충족됩니다.</div>
+        <div><a href="https://adpost.naver.com" target="_blank">애드포스트 ↗</a></div></div></details>
+    <details><summary>📈 수익 기록 (revenue.json) <span class="mini">수익 발생 시부터</span></summary>
+      <div class="row"><div>각 채널 보고서의 금액을 한 줄씩 기록하면 리포트 탭에 월별·채널별 집계.</div>
+        <div><a href="${esc(d.revenueEditUrl)}" target="_blank">✏️ 기록 ↗</a></div></div></details>
+    <details><summary>🔎 검색 노출 상태 <span class="mini">월 1회 점검 권장</span></summary>
+      <div class="row"><div>GSC 색인 페이지 수 / 네이버 서치어드바이저 수집 현황 — 늘고 있는지만 확인.</div>
+        <div><a href="https://search.google.com/search-console" target="_blank">GSC ↗</a>
+          <a href="https://searchadvisor.naver.com" target="_blank">네이버 ↗</a></div></div></details>
+    <details><summary>🧩 선택 과제 <span class="mini">여유 있을 때</span></summary>
+      <div class="row"><div>jype 네이버 서치어드바이저 등록 · www CNAME 레코드 · WP 퍼머링크(고유주소)를 '글 이름'으로 변경.</div></div></details>
   </div></section>`;
 
   // ===== 탭: 리포트 (기간별 발행·수익·주제 풀) =====
@@ -860,7 +908,7 @@ ${scheduleSection()}
   <div class="card">${setRows(d.affiliate.naverConnect)}
     <div class="note">가입: 네이버 <b>브랜드커넥트</b>에서 크리에이터 스페이스 개설 → <b>쇼핑 커넥트</b> 메뉴에서 이용약관 동의 → 즉시 시작(사전 심사 없음).
       활동 채널로 네이버 블로그·인스타그램·유튜브는 물론 <b>개인 사이트(본 사이트)</b>도 등록할 수 있습니다.<br>
-      💡 네이버 블로그(1순위 채널)와 궁합이 가장 좋습니다 — 네이버 생태계 안에서 콘텐츠·상품·구매가 한 흐름으로 이어집니다.<br>
+      💡 네이버 블로그와 궁합이 가장 좋습니다 — 네이버 생태계 안에서 콘텐츠·상품·구매가 한 흐름으로 이어집니다.<br>
       식별자를 GitHub <b>Variables</b>에 <code>NAVER_CONNECT_ID</code>로 등록하면 대시보드에 연동 상태가 반영되고,
       글 frontmatter에 <code>affiliate: [naverConnect]</code>를 넣으면 고지 문구가 자동 삽입됩니다.<br>
       ℹ️ 명칭 주의: "쇼핑파트너센터"는 스마트스토어 <b>판매자</b>용 센터로 별개입니다. 블로거용 제휴는 <b>쇼핑커넥트</b>가 정식 명칭입니다.</div>
@@ -964,10 +1012,10 @@ ${scheduleSection()}
   <button data-tab="all" onclick="showTab('all',this)">📊 전체</button>
   <button data-tab="research" onclick="showTab('research',this)">🔎 시장조사</button>
   <button data-tab="report" onclick="showTab('report',this)">📈 리포트</button>
-  <button data-tab="naver" onclick="showTab('naver',this)">🟢 네이버 블로그 · 1순위</button>
-  <button data-tab="blogger" onclick="showTab('blogger',this)">📝 구글 블로거 · 2순위</button>
-  <button data-tab="wordpress" onclick="showTab('wordpress',this)">🔵 워드프레스 · 3순위</button>
-  <button data-tab="ads" onclick="showTab('ads',this)">💰 광고사이트 · 4순위</button>
+  <button data-tab="naver" onclick="showTab('naver',this)">🟢 네이버 블로그</button>
+  <button data-tab="blogger" onclick="showTab('blogger',this)">📝 구글 블로거</button>
+  <button data-tab="wordpress" onclick="showTab('wordpress',this)">🔵 워드프레스</button>
+  <button data-tab="ads" onclick="showTab('ads',this)">💰 광고·수익화</button>
   <button data-tab="site" onclick="showTab('site',this)">🌐 자체 사이트</button>
 </div>
 

@@ -29,6 +29,8 @@ const NEWS = {
   "media-buzz": ["홈쇼핑 완판", "유튜브 화제 영상"],
   "platform-event": ["쿠팡 할인 행사", "G마켓 SSG 기획전"],
   "vertical-event": ["무신사 세일", "에이블리 지그재그 29CM W컨셉 프로모션"],
+  // 전일 방영 드라마·개봉 영화 + 도메인 연관 기획사(JYP·스타쉽) 이슈
+  "ent-media": ["드라마 시청률 화제", "영화 개봉 박스오피스", "JYP 스타쉽 엔터테인먼트 컴백"],
 };
 
 async function searchNews(query, display = 8) {
@@ -100,6 +102,7 @@ const TREND_CANDIDATES = [
   ...(SEASON_KW[month] || []),
   "정부지원금", "전기요금", "콘서트 티켓팅",   // 상시 핵심 니치
   "무신사", "쿠팡", "올리브영",                 // 커머스 브랜드
+  "드라마 다시보기", "영화 예매", "JYP", "스타쉽엔터테인먼트", // 엔터·미디어(도메인 연관)
 ];
 
 async function main() {
