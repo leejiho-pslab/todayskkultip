@@ -19,9 +19,10 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci || npm install
-      - name: 슬러그 교정
+      - name: 레이아웃 리싱크 (대표이미지·요약·소제목 이미지 + 슬러그)
         env:
+          SITE_URL: ${{ vars.SITE_URL }}
           WORDPRESS_URL: ${{ vars.WORDPRESS_URL }}
           WORDPRESS_USER: ${{ vars.WORDPRESS_USER }}
           WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
-        run: node automation/wp-fix-slugs.mjs
+        run: node automation/wp-resync.mjs

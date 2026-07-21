@@ -16,10 +16,26 @@ import path from "node:path";
 import { marked } from "marked";
 import matter from "gray-matter";
 import { site } from "../config/site.config.js";
-import { POSTS_DIR, loadPosts, fixLeftoverBold } from "./lib.mjs";
-import { absUrl, affiliateDisclosureLines } from "./render.mjs";
+import { ROOT, POSTS_DIR, loadPosts, fixLeftoverBold } from "./lib.mjs";
+import { absUrl, affiliateDisclosureLines, esc } from "./render.mjs";
 import { coupangBlock } from "./coupang.mjs";
 import { t } from "./i18n.mjs";
+
+// 커버 이미지가 로컬(레포)에 있으면 = 사이트에 배포돼 있음 → 절대 URL 로 참조 가능
+const coverExists = (slug, suffix = "") =>
+  fs.existsSync(path.join(ROOT, "src", "assets", "covers", `${slug}${suffix}.png`));
+const coverUrl = (slug, suffix = "") => absUrl(`/assets/covers/${slug}${suffix}.png`);
+
+/** 각 H2 소제목 뒤에 소제목 카드 이미지 삽입(파일 있을 때만) — 사이트 레이아웃과 동일 */
+function insertSectionImages(html, post) {
+  let k = -1;
+  return html.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/g, (m, text) => {
+    k += 1;
+    if (!coverExists(post.slug, `-s${k}`)) return m;
+    const alt = text.replace(/<[^>]+>/g, "").trim();
+    return `${m}<figure><img src="${coverUrl(post.slug, `-s${k}`)}" alt="${esc(alt)}" style="max-width:100%;height:auto;border-radius:8px" loading="lazy"></figure>`;
+  });
+}
 
 function auth() {
   const { WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_APP_PASSWORD } = process.env;
@@ -33,21 +49,30 @@ function auth() {
   return { base, token };
 }
 
-/** WP 본문 HTML (canonical 안내 + 출처 고지 포함) */
-function wpHtml(post) {
-  const body = fixLeftoverBold(marked.parse(post.body));
+/** WP 본문 HTML — 사이트와 동일한 읽기 레이아웃
+ *  (대표이미지 → 요약 → 소제목별 이미지가 삽입된 본문 → FAQ → 제휴 고지 → 상품 → 원문) */
+export function wpHtml(post) {
+  // 대표(히어로) 이미지 — 글 맨 위
+  const hero = coverExists(post.slug)
+    ? `<figure><img src="${coverUrl(post.slug)}" alt="${esc(post.title)}" style="max-width:100%;height:auto;border-radius:10px" loading="eager"></figure>`
+    : "";
+  // 요약 박스 — 도입부 한눈에
+  const summary = post.summary
+    ? `<blockquote style="border-left:4px solid #4f7cff;background:#f5f8ff;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0"><strong>${t.summaryLabel || "요약"}</strong><br>${esc(post.summary)}</blockquote>`
+    : "";
+  const body = insertSectionImages(fixLeftoverBold(marked.parse(post.body)), post);
   const faq =
     post.faqs && post.faqs.length
       ? `<h2>${t.faqHeading}</h2>` + post.faqs.map((f) => `<h3>${f.q}</h3><p>${f.a}</p>`).join("")
       : "";
-  // 제휴 고지: 본문에 제휴 링크가 있는 글은 발행 채널 어디서든 고지 문구 필수
+  // 제휴 고지: 상단 대신 상품 블록 바로 위에 배치(첫인상은 콘텐츠, 고지는 링크 근처)
   const disclosure = affiliateDisclosureLines(post)
-    .map((l) => `<p><em>${l}</em></p>`)
+    .map((l) => `<p style="font-size:13px;color:#888"><em>${l}</em></p>`)
     .join("");
   // 원문 링크: 검색엔진이 자체 사이트를 원본으로 인식하도록 유도(중복 콘텐츠 잠식 방지)
   const canonical = absUrl(post.path);
-  return `${disclosure}${body}${faq}
-${coupangBlock(post)}
+  return `${hero}${summary}${body}${faq}
+${disclosure}${coupangBlock(post)}
 <hr>
 <p><small>${t.syndicationFooter(canonical, site.name)}</small></p>`;
 }
