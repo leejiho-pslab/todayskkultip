@@ -34,7 +34,9 @@ ${lines}\n`;
 }
 
 const SEASONAL_FILE = path.join(ROOT, "config", "topics", `${site.topicsPrefix}seasonal-topics.json`);
-const MODEL = process.env.CONTENT_MODEL || "claude-sonnet-4-6";
+// 주제 발굴은 짧은 구조화 목록 작업이라 경량 모델로 충분 — 본문 생성(CONTENT_MODEL)과 분리해
+// 토큰 비용 절감. 필요 시 TOPIC_MODEL 로 상향 가능.
+const MODEL = process.env.TOPIC_MODEL || "claude-haiku-4-5-20251001";
 const IS_EN = String(site.lang || "ko").toLowerCase().startsWith("en");
 
 const TOPIC_TOOL = {
@@ -111,7 +113,8 @@ export async function ensureTopicPool(min = 6) {
     ...(fs.existsSync(SEASONAL_FILE) ? Object.values(readJson(SEASONAL_FILE)).flat() : []),
     ...gen.topics,
   ].map((t) => t.title);
-  const exclusion = [...new Set([...used, ...poolTitles])].join("\n- ");
+  // 제외 목록은 최근 80건으로 상한 — 코퍼스가 커져도 프롬프트(토큰)가 무한정 늘지 않게
+  const exclusion = [...new Set([...used, ...poolTitles])].slice(-80).join("\n- ");
 
   const researchOnly = !!flags().researchOnly;
   const scopeBlock = researchOnly ? researchDirective(IS_EN) : "";
