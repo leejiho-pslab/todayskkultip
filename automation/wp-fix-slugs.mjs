@@ -15,12 +15,14 @@ if (!WORDPRESS_URL || !WORDPRESS_USER || !WORDPRESS_APP_PASSWORD) {
 const BASE = WORDPRESS_URL.replace(/\/+$/, "");
 const AUTH = "Basic " + Buffer.from(`${WORDPRESS_USER}:${WORDPRESS_APP_PASSWORD.replace(/\s+/g, "")}`).toString("base64");
 
-// HTML 엔티티·공백 차이를 무시하는 제목 정규화 키
+// HTML 엔티티·공백·문장부호 차이를 무시하는 제목 정규화 키.
+// ⚠️ \W 는 한글을 비단어로 취급해 전부 지워버리므로 사용 금지 —
+//    한글(가~힣)·영문·숫자만 남겨 서로 다른 한글 제목이 구별되게 한다.
 const norm = (s) => String(s || "")
   .replace(/&#\d+;|&[a-z]+;/gi, " ")
   .replace(/<[^>]+>/g, "")
-  .replace(/[\s\W]+/g, "")
-  .slice(0, 40);
+  .replace(/[^0-9a-z가-힣]/gi, "")
+  .slice(0, 30);
 
 async function wpFetch(path, init = {}) {
   const res = await fetch(`${BASE}/wp-json/wp/v2${path}`, {
