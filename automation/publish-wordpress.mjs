@@ -37,6 +37,25 @@ function insertSectionImages(html, post) {
   });
 }
 
+// 추천 게시물(다른 글로 이동) — 같은 카테고리 우선 4편, WP 주소로 링크
+let _allPosts = null;
+const allPosts = () => (_allPosts ||= loadPosts());
+function relatedBlock(post) {
+  const base = (process.env.WORDPRESS_URL || "").replace(/\/+$/, "");
+  if (!base) return "";
+  const rest = allPosts().filter((p) => p.slug && p.slug !== post.slug);
+  const same = rest.filter((p) => p.category === post.category);
+  const picks = [...same, ...rest.filter((p) => p.category !== post.category)].slice(0, 4);
+  if (!picks.length) return "";
+  const cards = picks.map((p) => {
+    const img = coverExists(p.slug)
+      ? `<img src="${coverUrl(p.slug)}" alt="" style="width:96px;height:64px;object-fit:cover;border-radius:8px;flex:0 0 auto">`
+      : "";
+    return `<a href="${base}/${p.slug}/" style="display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;border:1px solid #eee;border-radius:10px;padding:10px 12px;margin:8px 0">${img}<span style="font-weight:600;line-height:1.45">${esc(p.title)}</span></a>`;
+  }).join("");
+  return `<h2>👉 함께 보면 좋은 글</h2>${cards}`;
+}
+
 function auth() {
   const { WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_APP_PASSWORD } = process.env;
   if (!WORDPRESS_URL || !WORDPRESS_USER || !WORDPRESS_APP_PASSWORD) {
@@ -73,6 +92,7 @@ export function wpHtml(post) {
   const canonical = absUrl(post.path);
   return `${hero}${summary}${body}${faq}
 ${disclosure}${coupangBlock(post)}
+${relatedBlock(post)}
 <hr>
 <p><small>${t.syndicationFooter(canonical, site.name)}</small></p>`;
 }
