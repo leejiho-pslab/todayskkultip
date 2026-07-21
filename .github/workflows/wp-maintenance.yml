@@ -1,0 +1,27 @@
+name: 워드프레스 유지보수 (슬러그 교정)
+
+# 수동 실행 전용 — 기존 WP 글의 한글 URL 을 영문 슬러그로 일괄 교정한다.
+# 신규 글은 publish-wordpress.mjs 가 발행 시 슬러그를 함께 지정하므로 재실행 불필요.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  fix-slugs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci || npm install
+      - name: 슬러그 교정
+        env:
+          WORDPRESS_URL: ${{ vars.WORDPRESS_URL }}
+          WORDPRESS_USER: ${{ vars.WORDPRESS_USER }}
+          WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
+        run: node automation/wp-fix-slugs.mjs

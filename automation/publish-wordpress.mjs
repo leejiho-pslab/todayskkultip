@@ -61,6 +61,9 @@ async function publishOne({ base, token }, post) {
     },
     body: JSON.stringify({
       title: post.title,
+      // 한글 제목 그대로 두면 URL 이 %ec%bd%98... 로 깨져 가독성이 나쁨 →
+      // 사이트와 동일한 영문 슬러그를 지정 (고유주소 설정이 '글 이름'일 때 적용됨)
+      slug: post.slug,
       content: wpHtml(post),
       status: site.channels.wordpress.status || "publish",
       excerpt: post.description || "",
