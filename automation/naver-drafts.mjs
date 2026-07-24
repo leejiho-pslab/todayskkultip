@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { marked } from "marked";
 import { site } from "../config/site.config.js";
-import { fixLeftoverBold } from "./lib.mjs";
+import { fixLeftoverBold, isEntertainment } from "./lib.mjs";
 import { absUrl } from "./render.mjs";
 
 const DISCLOSURE =
@@ -108,6 +108,8 @@ export function writeNaverDrafts(dashboardDir, posts) {
   const dir = path.join(dashboardDir, "naver");
   fs.mkdirSync(dir, { recursive: true });
   const list = [];
+  // 연예(팬라이프) 글은 네이버 블로그에 발행하지 않는다(운영자 정책) — 원고에서 제외.
+  posts = posts.filter((p) => !isEntertainment(p.category));
   for (const p of posts) {
     const html = naverDraftHtml(p);
     // 복사 버튼용 순수 서식 조각 (뷰어 페이지와 별도)

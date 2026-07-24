@@ -15,7 +15,7 @@ import { site } from "../config/site.config.js";
 import { pickTopics } from "./topic-picker.mjs";
 import { rankByTrend } from "./trend.mjs";
 import { pendingTopics, editorialNotes, markRequestDone } from "./requests.mjs";
-import { POSTS_DIR, ensureDir, slugify, todayKST, loadPosts, existingTitles } from "./lib.mjs";
+import { POSTS_DIR, ensureDir, slugify, todayKST, loadPosts, existingTitles, isEntertainment } from "./lib.mjs";
 
 const MODEL = process.env.CONTENT_MODEL || "claude-sonnet-4-6";
 const IS_EN = String(site.lang || "ko").toLowerCase().startsWith("en");
@@ -94,6 +94,24 @@ const ARTICLE_TOOL = IS_EN
       },
     };
 
+// 네이버 '추천 콘텐츠' 상위 노출 블로그들의 공통 패턴(운영자 학습 요청 반영).
+//   피드에서 반복적으로 관찰되는 특성 — 이 훅들을 글에 반영해 유입·체류를 높인다.
+function feedPatterns(isEn) {
+  return isEn
+    ? `\n[Feed-friendly patterns — mirror the top-performing recommendation-feed blogs]
+A. Title: curiosity/benefit hook with a concrete number or "(read before you...)" framing — specific, not clickbait.
+B. Open with a relatable one-line hook ("Ever had this happen?") then give the payoff/result up front.
+C. First-person, tried-it-myself voice with before/after so it reads like real experience, not a listicle.
+D. Practical, do-it-today value the reader can apply immediately; short paragraphs + lists for mobile skimming.
+E. Add a timely angle ("right now", "this season") and a one-line takeaway readers want to save/share.\n`
+    : `\n[추천 피드 상위 패턴 — 네이버 '추천 콘텐츠' 인기 블로그 공통점 반영]
+A. 제목: 호기심·이득 훅 + 구체적 숫자나 "(사기 전에 꼭)" 식 프레이밍 — 과장 낚시는 금지, 구체적으로.
+B. 도입 한 줄로 공감 훅("이런 적 없으세요?")을 던진 뒤, 핵심 결과·효과를 곧바로 제시(스크롤 이탈 방지).
+C. "직접 해봤더니 / 막상 써보니" 1인칭 경험담 톤 + 전후 비교로 실제 후기처럼 읽히게(기계적 나열 금지).
+D. 오늘 바로 따라 할 수 있는 실용 정보 중심 · 짧은 문단과 리스트로 모바일에서 훑기 쉽게.
+E. "요즘·이번 시즌" 시의성 앵글 + 저장·공유하고 싶어지는 한 줄 핵심 요약 포함.\n`;
+}
+
 function buildPrompt(topic, notes) {
   const cat = site.categories.find((c) => c.slug === topic.category);
   const baseline = (site.editorialBaseline || [])
@@ -134,7 +152,7 @@ Writing guidelines (SEO + GEO):
 9. Note that prices/schedules/policies change and recommend checking official pages.
 10. End with a practical checklist or key-points recap. Provide 3-5 FAQs phrased as real search queries.
 11. Length: about ${targetWords} words, minimum 1,100 words.
-
+${feedPatterns(true)}
 You MUST call the save_article tool to store the result.`;
   }
   if (notes) directives.push(`[운영자 공통 편집 지침] ${notes}`);
@@ -170,7 +188,7 @@ ${directiveBlock}
 9. 제도/요금/신청 정보는 변경 가능성을 명시하고 공식 누리집 확인을 권고.
 10. 마지막에 핵심 체크리스트. FAQ 3~5개는 고객이 실제 검색할 질문 형태로 별도 제공.
 11. 분량은 한국어 기준 약 ${site.publishing.targetChars}자, 최소 1800자.
-
+${feedPatterns(false)}
 반드시 save_article 도구를 호출하여 결과를 저장하세요.`;
 }
 
@@ -224,9 +242,11 @@ export async function generateOne(topic) {
     profile: site.profile || "default",
     // 제휴 마케팅 태그(예: ["coupang"]). 상품 추천형 글에 수동/향후 자동으로 채움.
     affiliate: [],
+    // 연예(팬라이프) 글은 네이버·구글 블로그에 발행하지 않는다(운영자 정책) — 자체 사이트에만.
+    //   연예 콘텐츠는 도메인이 연관된 starship-ent.ai.kr·jype.ai.kr 에서만 다룬다.
     channels: {
       site: true,
-      blogger: site.channels.blogger.enabled,
+      blogger: isEntertainment(topic.category) ? false : site.channels.blogger.enabled,
       wordpress: site.channels.wordpress.enabled,
     },
     published: { blogger: false, wordpress: false }, // 발행 추적 (각 publish-*.mjs 가 갱신)

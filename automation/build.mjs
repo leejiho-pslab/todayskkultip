@@ -113,8 +113,15 @@ function relatedGrid(post, allPosts) {
 /** 글 페이지 사이드바 — 광고(스티키) + 최신글 + 카테고리 (내부 순환 링크) */
 function sidebar(allPosts, currentPath = null) {
   // 프로필(소개) 위젯 — 매거진형 블로그 공통 요소
+  // 아바타: 프로필별 이모티콘(힉스필드 생성) 이미지를 우선 사용, 없으면 brandmark 이모지로 폴백.
+  //   (과거 버그: site.brandmark 는 객체라 문자열화하면 "[object Object]" 로 렌더됨)
+  const hasAvatar = fs.existsSync(path.join(ROOT, "src", "assets", "avatar.png"));
+  const bmEmoji = (site.brandmark && site.brandmark.emoji) || "📝";
+  const avatar = hasAvatar
+    ? `<img class="pf-avatar" src="${url("/assets/avatar.png")}" alt="${esc(site.name)}" width="72" height="72" loading="lazy">`
+    : `<div class="pf-avatar" aria-hidden="true">${esc(bmEmoji)}</div>`;
   const profile = `<div class="widget profile">
-    <div class="pf-avatar" aria-hidden="true">${esc(site.brandmark || "📝")}</div>
+    ${avatar}
     <strong class="pf-name">${esc(site.name)}</strong>
     <p class="pf-bio">${esc(site.tagline || site.description || "")}</p>
     <a class="pf-link" href="${url("/about/")}">${t.moreAbout || "소개 보기"}</a>

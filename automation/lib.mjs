@@ -32,6 +32,12 @@ export function todayKST() {
   return nowKST().toISOString().slice(0, 10);
 }
 
+// 연예(팬라이프) 카테고리 슬러그 — 프로필별 명칭이 달라 한 곳에서 관리.
+//   default(starship-ent.ai.kr) → "ent" · jype(jype.ai.kr) → "entertainment"
+// 운영자 정책: 연예 콘텐츠는 이 두 사이트에서만 다루고, 네이버·구글 블로그에는 발행하지 않는다.
+export const ENT_CATEGORIES = new Set(["ent", "entertainment"]);
+export const isEntertainment = (category) => ENT_CATEGORIES.has(category);
+
 /** 한글 제목 -> URL slug. 한글은 유지하되 공백/특수문자 정리 */
 export function slugify(title) {
   return title
