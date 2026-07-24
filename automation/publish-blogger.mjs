@@ -17,6 +17,7 @@ import { site } from "../config/site.config.js";
 import { POSTS_DIR, loadPosts, fixLeftoverBold } from "./lib.mjs";
 import { absUrl, affiliateDisclosureLines } from "./render.mjs";
 import { coupangBlock } from "./coupang.mjs";
+import { channelVariant } from "./variation.mjs";
 import { t } from "./i18n.mjs";
 
 function getClient() {
@@ -33,19 +34,15 @@ function getClient() {
 
 /** 블로거용 본문 HTML 생성 (canonical 링크 + 간단 푸터 포함) */
 function bloggerHtml(post) {
-  const body = fixLeftoverBold(marked.parse(post.body));
-  const faq =
-    post.faqs && post.faqs.length
-      ? `<h2>${t.faqHeading}</h2>` +
-        post.faqs.map((f) => `<h3>${f.q}</h3><p>${f.a}</p>`).join("")
-      : "";
+  // 채널별 변형(중복 콘텐츠 방지): 블로거 전용 도입/요약/마무리 + FAQ 순서
+  const v = channelVariant(post, "blogger");
   // 제휴 고지: 본문에 제휴 링크가 있는 글은 발행 채널 어디서든 고지 문구 필수
   const disclosure = affiliateDisclosureLines(post)
     .map((l) => `<p><em>${l}</em></p>`)
     .join("");
   // 원문 링크: 검색엔진이 자체 사이트를 원본으로 인식하도록 유도(중복 콘텐츠 잠식 방지)
   const canonical = absUrl(post.path);
-  return `${disclosure}${body}${faq}
+  return `${disclosure}${v.introHtml}${v.summaryHtml}${v.bodyHtml}${v.faqHtml}${v.outroHtml}
 ${coupangBlock(post)}
 <hr>
 <p><small>${t.syndicationFooter(canonical, site.name)}</small></p>`;

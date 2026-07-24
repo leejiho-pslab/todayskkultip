@@ -19,6 +19,7 @@ import { site } from "../config/site.config.js";
 import { ROOT, POSTS_DIR, loadPosts, fixLeftoverBold } from "./lib.mjs";
 import { absUrl, affiliateDisclosureLines, esc } from "./render.mjs";
 import { coupangBlock } from "./coupang.mjs";
+import { channelVariant } from "./variation.mjs";
 import { t } from "./i18n.mjs";
 
 // 커버 이미지가 로컬(레포)에 있으면 = 사이트에 배포돼 있음 → 절대 URL 로 참조 가능
@@ -75,22 +76,16 @@ export function wpHtml(post) {
   const hero = coverExists(post.slug)
     ? `<figure><img src="${coverUrl(post.slug)}" alt="${esc(post.title)}" style="max-width:100%;height:auto;border-radius:10px" loading="eager"></figure>`
     : "";
-  // 요약 박스 — 도입부 한눈에
-  const summary = post.summary
-    ? `<blockquote style="border-left:4px solid #4f7cff;background:#f5f8ff;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0"><strong>${t.summaryLabel || "요약"}</strong><br>${esc(post.summary)}</blockquote>`
-    : "";
-  const body = insertSectionImages(fixLeftoverBold(marked.parse(post.body)), post);
-  const faq =
-    post.faqs && post.faqs.length
-      ? `<h2>${t.faqHeading}</h2>` + post.faqs.map((f) => `<h3>${f.q}</h3><p>${f.a}</p>`).join("")
-      : "";
+  // 채널별 변형(중복 콘텐츠 방지): 워드프레스 전용 도입/요약/마무리 + FAQ 순서
+  const v = channelVariant(post, "wordpress");
+  const body = insertSectionImages(v.bodyHtml, post);
   // 제휴 고지: 상단 대신 상품 블록 바로 위에 배치(첫인상은 콘텐츠, 고지는 링크 근처)
   const disclosure = affiliateDisclosureLines(post)
     .map((l) => `<p style="font-size:13px;color:#888"><em>${l}</em></p>`)
     .join("");
   // 원문 링크: 검색엔진이 자체 사이트를 원본으로 인식하도록 유도(중복 콘텐츠 잠식 방지)
   const canonical = absUrl(post.path);
-  return `${hero}${summary}${body}${faq}
+  return `${hero}${v.introHtml}${v.summaryHtml}${body}${v.faqHtml}${v.outroHtml}
 ${disclosure}${coupangBlock(post)}
 ${relatedBlock(post)}
 <hr>

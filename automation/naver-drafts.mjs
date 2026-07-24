@@ -15,6 +15,7 @@ import { marked } from "marked";
 import { site } from "../config/site.config.js";
 import { fixLeftoverBold, isEntertainment } from "./lib.mjs";
 import { absUrl } from "./render.mjs";
+import { channelVariant } from "./variation.mjs";
 
 const DISCLOSURE =
   "※ 이 포스팅은 네이버 쇼핑커넥트 활동의 일환으로, 링크를 통해 구매 시 일정 수수료를 제공받을 수 있습니다.";
@@ -77,25 +78,25 @@ function productBlock(p, i) {
 
 /** 글 1건 → 네이버 붙여넣기용 서식 HTML */
 export function naverDraftHtml(post) {
-  // 본문 마크다운 → HTML, 내부 링크는 절대주소로 (출처 역할)
-  let body = fixLeftoverBold(marked.parse(post.body || ""));
-  body = body.replace(/(src|href)="\/(?!\/)/g, (m, attr) => `${attr}="${site.url.replace(/\/+$/, "")}/`);
+  // 채널별 변형(중복 콘텐츠 방지): 네이버 전용 도입/요약/마무리 + FAQ 순서
+  const v = channelVariant(post, "naver");
+  // 본문 내부 링크는 절대주소로 (출처 역할)
+  const body = v.bodyHtml.replace(/(src|href)="\/(?!\/)/g, (m, attr) => `${attr}="${site.url.replace(/\/+$/, "")}/`);
 
   const prods = (PRODUCTS[post.category] || PRODUCT_FALLBACK).slice(0, 3);
-  const faq = (post.faqs || []).length
-    ? `<h2>자주 묻는 질문</h2>` + post.faqs.map((f) => `<h3>Q. ${f.q}</h3><p>${f.a}</p>`).join("")
-    : "";
   const tags = (post.keywords || []).concat(post.tags || []).slice(0, 8)
     .map((k) => `#${String(k).replace(/\s+/g, "")}`).join(" ");
 
   return `<p><i>${DISCLOSURE}</i></p>
-<p>${post.description || ""}</p>
+${v.introHtml}
+${v.summaryHtml}
 ${body}
-${faq}
+${v.faqHtml}
 <hr>
 <h2>💰 이 글 보고 바로 쓰는 추천템 (오늘 최저가 확인)</h2>
 <p>아래 제품들은 글 내용과 직접 관련된 것만 골랐습니다. 가격은 수시로 바뀌니 <b>카드에서 오늘 가격을 꼭 확인</b>하세요.</p>
 ${prods.map(productBlock).join("\n")}
+${v.outroHtml}
 <hr>
 <p>원문(더 자세한 표와 그림): <a href="${absUrl(post.path)}">${absUrl(post.path)}</a></p>
 <p>${tags}</p>`;
