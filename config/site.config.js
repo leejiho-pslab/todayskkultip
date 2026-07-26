@@ -59,8 +59,9 @@ const baseSite = {
   locale: "ko_KR",
   author: "오늘의 꿀팁 편집부",
   timezone: "Asia/Seoul",
-  // 문의 이메일 (문의 페이지에 노출). 개인정보라 기본 비공개 — 공개할 이메일을 CONTACT_EMAIL 로 설정
-  contactEmail: process.env.CONTACT_EMAIL || "",
+  // 문의 이메일 (문의 페이지에 노출). 애드센스 신뢰도(게시자 연락 수단)용 — 운영자 지정 Gmail.
+  // 다른 주소로 바꾸려면 CONTACT_EMAIL 환경변수(레포 Variables)로 덮어쓸 수 있음.
+  contactEmail: process.env.CONTACT_EMAIL || "ljhnimwithit@gmail.com",
 
   // ---- 니치/카테고리 (생활정보·꿀팁) ----
   niche: "생활정보/꿀팁",
