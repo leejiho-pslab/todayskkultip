@@ -9,7 +9,7 @@ import path from "node:path";
 import { marked } from "marked";
 import { site } from "../config/site.config.js";
 import {
-  ROOT, PUBLIC_DIR, ensureDir, loadPosts, excerpt, todayKST, slugify, fixLeftoverBold,
+  ROOT, PUBLIC_DIR, ensureDir, loadPosts, excerpt, todayKST, slugify, fixLeftoverBold, readJson,
 } from "./lib.mjs";
 import { buildDashboard } from "./dashboard.mjs";
 import { coupangBlock } from "./coupang.mjs";
@@ -21,6 +21,13 @@ import {
 } from "./render.mjs";
 
 marked.setOptions({ mangle: false, headerIds: false, breaks: false });
+
+// 애드센스 '가치 낮은 콘텐츠' 심사 모드: 자체 사이트를 콘텐츠 우선으로 보이게
+// 쿠팡 상품 블록과 제휴 고지를 잠시 숨긴다(블로거·워드프레스 채널은 그대로).
+const ADSENSE_REVIEW = (() => {
+  try { return !!readJson(path.join(ROOT, "config", "automation-flags.json")).adsenseReview; }
+  catch { return false; }
+})();
 
 function write(rel, html) {
   const out = path.join(PUBLIC_DIR, rel);
@@ -253,11 +260,11 @@ function buildPost(post, allPosts, validTags = new Set()) {
       } · <a href="${url("/author/")}" rel="author">${esc(site.authorProfile?.name || site.author)}</a></div>
       ${heroImg}
       ${post.summary ? `<blockquote class="summary"><strong>${t.summaryLabel}</strong><br>${esc(post.summary)}</blockquote>` : ""}
-      ${affiliateDisclosure(post)}
+      ${affiliateDisclosure(post, { excludeCoupang: ADSENSE_REVIEW })}
       ${adsenseUnit("top")}
       ${toc}
       ${bodyHtml}
-      ${coupangBlock(post)}
+      ${ADSENSE_REVIEW ? "" : coupangBlock(post)}
       ${adsenseUnit("bottom")}
       ${faqHtml}
       ${post.faqs && post.faqs.length ? adsenseUnit("inArticle") : ""}

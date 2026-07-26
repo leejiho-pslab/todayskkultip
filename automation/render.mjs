@@ -87,8 +87,8 @@ export function naverAd() {
  *  post.affiliate 배열에 태그가 있으면 항상 노출한다 — 고지 의무는 본문에 링크가
  *  존재하는지에 따르는 것이지, 환경변수(연동 상태)와 무관하기 때문(정책 위반 방지).
  *  네트워크를 추가하면(site.affiliate 에 항목 추가) 자동으로 지원된다. */
-export function affiliateDisclosure(post) {
-  const lines = affiliateDisclosureLines(post);
+export function affiliateDisclosure(post, opts) {
+  const lines = affiliateDisclosureLines(post, opts);
   if (!lines.length) return "";
   return `<div class="affiliate-disclosure">${lines.map((l) => esc(l)).join("<br>")}</div>`;
 }
@@ -96,10 +96,12 @@ export function affiliateDisclosure(post) {
 /** 고지 문구 텍스트 배열 — 블로거/워드프레스 발행 모듈에서도 재사용.
  *  쿠팡 블록은 모든 글에 자동 삽입되므로, 쿠팡이 설정돼 있으면 글의 affiliate
  *  태그와 무관하게 쿠팡 고지를 항상 포함한다(정책상 링크가 있으면 고지 필수). */
-export function affiliateDisclosureLines(post) {
+export function affiliateDisclosureLines(post, { excludeCoupang = false } = {}) {
   const a = site.affiliate || {};
   const tags = new Set(post?.affiliate || []);
-  if (site.lang !== "en" && coupangConfigured()) tags.add("coupang");
+  // 애드센스 심사 모드에서 자체 사이트는 쿠팡 블록을 숨기므로, 쿠팡 고지도 함께 제외한다
+  // (블록 없이 고지만 남는 불일치 방지).
+  if (!excludeCoupang && site.lang !== "en" && coupangConfigured()) tags.add("coupang");
   return [...tags].filter((t) => a[t]?.disclosure).map((t) => a[t].disclosure);
 }
 
