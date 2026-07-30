@@ -345,6 +345,7 @@ function buildIndex(posts) {
         description: site.description,
         canonical: absUrl(rel),
         jsonld: page === 1 ? organizationJsonLd() : "",
+        noindex: page !== 1, // 2페이지 이상 목록은 얇은/중복 페이지 — 색인 제외
       }) +
       header() +
       `<div class="layout">
@@ -380,6 +381,7 @@ function buildCategories(posts) {
           title: page === 1 ? t.categoryTitle(c.name) : `${t.categoryTitle(c.name)}${t.pageTitleSuffix(page)}`,
           description: `${c.name} - ${c.desc}`,
           canonical: absUrl(rel),
+          noindex: page !== 1, // 카테고리 2페이지 이상은 색인 제외(얇은/중복 방지)
         }) +
         header() +
         `<div class="layout">
@@ -445,7 +447,7 @@ function buildSearch(posts) {
   const hintJs = JSON.stringify(`<p class="mini" style="color:var(--muted)">${t.search.hint}</p>`);
   const noResJs = JSON.stringify(t.search.noResults);
   const html =
-    head({ title: t.search.title, description: t.search.desc(site.name), canonical: absUrl("/search/") }) +
+    head({ title: t.search.title, description: t.search.desc(site.name), canonical: absUrl("/search/"), noindex: true }) +
     header() +
     `<section>
       <h1 style="font-size:24px">${t.search.heading}</h1>
@@ -534,7 +536,7 @@ function buildStaticPages() {
     .map((c) => `<a class="chip" href="${url(`/category/${c.slug}/`)}">${esc(c.name)}</a>`)
     .join("");
   const notFound =
-    head({ title: t.notFound.title, description: t.notFound.desc, canonical: absUrl("/404.html") }) +
+    head({ title: t.notFound.title, description: t.notFound.desc, canonical: absUrl("/404.html"), noindex: true }) +
     header() +
     `<article class="post" style="text-align:center">
       <h1 style="font-size:64px;margin:20px 0 0">404</h1>
@@ -561,7 +563,7 @@ function buildSitemap(posts, tags = []) {
     { loc: absUrl("/contact/"), pri: "0.3", lastmod: latest },
     { loc: absUrl("/privacy/"), pri: "0.3", lastmod: latest },
     { loc: absUrl("/terms/"), pri: "0.3", lastmod: latest },
-    { loc: absUrl("/search/"), pri: "0.4", lastmod: latest },
+    // 내부 검색 결과 페이지(/search/)는 저가치·색인 제외 대상이라 사이트맵에서 뺀다
     ...site.categories.map((c) => ({
       loc: absUrl(`/category/${c.slug}/`), pri: "0.6", lastmod: catLast(c.slug),
     })),

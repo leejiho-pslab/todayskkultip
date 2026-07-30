@@ -127,7 +127,7 @@ gtag('js',new Date());gtag('config','${esc(ga)}');</script>`;
 
 // ---------------- 공통 레이아웃 ----------------
 
-export function head({ title, description, canonical, image, type = "website", jsonld = "" }) {
+export function head({ title, description, canonical, image, type = "website", jsonld = "", noindex = false }) {
   const fullTitle = title === site.name ? title : `${title} | ${site.name}`;
   const desc = (description || site.description).slice(0, 160);
   const img = image || absUrl("/assets/og-default.png");
@@ -147,7 +147,7 @@ export function head({ title, description, canonical, image, type = "website", j
 <meta property="og:image" content="${esc(img)}">
 <meta property="og:locale" content="${site.locale}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="robots" content="${noindex ? "noindex, follow" : "index, follow, max-image-preview:large"}">
 <link rel="icon" type="image/svg+xml" href="${url("/assets/favicon.svg")}">
 <link rel="icon" type="image/png" href="${url("/assets/favicon.png")}">
 <link rel="apple-touch-icon" href="${url("/assets/favicon.png")}">
