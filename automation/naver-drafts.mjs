@@ -128,11 +128,11 @@ function productsSection(category, prods) {
     const { href, tracked, exact } = linkFor(category, kw);
     let cta;
     if (tracked && exact) {
-      cta = `<p><a href="${href}" target="_blank"><b>👉 ${p.name} 오늘 최저가 확인하기</b></a></p>`;
+      cta = `<p><a href="${href}" target="_blank"><b>👉 ${p.name} 지금 최저가 보러가기</b></a></p>`;
     } else {
       // 정확한 상품을 보여주는 검색 링크(미추적) — 수익은 아래 입구 링크가 담당
       needEntry = needEntry || tracked; // 카테고리 추적 링크가 있을 때만 입구 CTA 노출
-      cta = `<p><a href="https://www.coupang.com/np/search?channel=user&q=${encodeURIComponent(kw)}" target="_blank"><b>👉 쿠팡에서 「${kw}」 최저가 검색하기</b></a></p>`;
+      cta = `<p><a href="https://www.coupang.com/np/search?channel=user&q=${encodeURIComponent(kw)}" target="_blank"><b>👉 쿠팡에서 「${kw}」 지금 최저가 보러가기</b></a></p>`;
     }
     return `
 <h3>🛒 함께 준비하면 좋은 것 ${i + 1}. ${p.name}</h3>

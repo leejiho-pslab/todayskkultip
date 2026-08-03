@@ -28,16 +28,21 @@ export function loadVariant(slug, channel) {
 }
 
 // 채널별 문체·구성 지침 — 제목/구성/문장까지 서로 완전히 다르게
+// 공통: 모든 채널 변형에 "글 내용과 직결되는" 구매 아이템 2~3개(products)를 함께 생성
+const PRODUCTS_BRIEF = `
+추가로 products 필드에 "이 글 내용과 실제로 직결되는" 구매 아이템 2~3개를 골라라(일반 카테고리 아이템 금지,
+글의 주제·상황에서 독자가 정말 살 법한 것). name=상품 종류명(브랜드 지어내기 금지), query=쇼핑 검색어,
+why=독자에게 왜 필요한지 자연스러운 한 문장.`;
 const CHANNEL_BRIEF_KO = {
   blogger: `구글 블로거용. 친근한 정보 블로그체("~해요/~인데요"). 원본과 다른 소제목 구성(순서·묶음 재설계),
-비유·일상 예시 1개 이상. 제목은 원본과 다른 롱테일 변형(예: 원본이 "방법 총정리"면 여기는 "~하는 법 5가지"류).`,
+비유·일상 예시 1개 이상. 제목은 원본과 다른 롱테일 변형(예: 원본이 "방법 총정리"면 여기는 "~하는 법 5가지"류).${PRODUCTS_BRIEF}`,
   wordpress: `워드프레스용. 전문 가이드체("~합니다/~하십시오" 아님, 담백한 설명체). 단계형(Step) 구성으로 재편성,
-표를 1개 이상 재구성. 제목은 절차/체크리스트 지향 롱테일 변형.`,
+표를 1개 이상 재구성. 제목은 절차/체크리스트 지향 롱테일 변형.${PRODUCTS_BRIEF}`,
   naver: `네이버 블로그용. 직접 겪은 후기·경험담 대화체("저는 ~했는데요", "막상 해보니"). 모바일 가독성:
 문단 2~3문장 이하로 짧게, 중간중간 한 줄 강조. 제목은 후기/실사용 지향 롱테일 변형(과장·단정 금지).
-추가로 products 필드에 "이 글 내용과 실제로 직결되는" 구매 아이템 2~3개를 골라라(일반 카테고리 아이템 금지,
-글의 주제·상황에서 독자가 정말 살 법한 것). name=상품 종류명(브랜드 지어내기 금지), query=네이버 쇼핑 검색어,
-why=독자에게 왜 필요한지 자연스러운 한 문장(후기 톤).`,
+앵글: 실생활·시즌성을 전면에 — 지금 계절에 바로 써먹는 관점(제철음식, 휴가 필수템, 냉방·난방용품,
+열 내리는 음식, 보양식, 명절 준비 등)으로 도입과 예시를 재구성하라(주제가 허용하는 범위에서).${PRODUCTS_BRIEF}
+why 는 후기 톤("~했는데 확실히 편했어요")으로.`,
 };
 const CHANNEL_BRIEF_EN = {
   blogger: `For Blogger. Friendly blog voice, restructured headings, one relatable example. Title = a different long-tail variant than the original.`,
@@ -66,7 +71,7 @@ const TOOL = {
       },
       products: {
         type: "array",
-        description: "네이버 채널일 때만: 글 내용과 직결되는 추천 상품 2~3개(브랜드 지어내기 금지)",
+        description: "글 내용과 직결되는 추천 상품 2~3개(브랜드 지어내기 금지) — 모든 채널 공통",
         items: {
           type: "object",
           properties: {
@@ -125,7 +130,7 @@ ${post.body}
 /** 변형을 글 객체에 입혀 "채널 전용 글"로 만든다(경로·슬러그·카테고리는 원본 유지 → canonical 보존). */
 export function applyVariant(post, variant) {
   if (!variant) return post;
-  return { ...post, title: variant.title, description: variant.description, summary: variant.summary, body: variant.body_markdown, faqs: variant.faqs || post.faqs, _rewritten: true };
+  return { ...post, title: variant.title, description: variant.description, summary: variant.summary, body: variant.body_markdown, faqs: variant.faqs || post.faqs, _products: variant.products || null, _rewritten: true };
 }
 
 /** CLI 사전 생성: 발행 임박분(blogger/wordpress 각 PUBLISH_LIMIT)과 네이버 최신분을 미리 생성 */

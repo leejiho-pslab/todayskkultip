@@ -121,6 +121,8 @@ article.post blockquote { margin: 18px 0; padding: 12px 16px; background: var(--
 .cpg-item { display: flex; align-items: center; justify-content: space-between; gap: 12px;
   flex-wrap: wrap; padding: 10px 12px; background: #fff; border: 1px solid #f0e0d6; border-radius: 9px; }
 .cpg-name { font-weight: 600; }
+.cpg-why { display: block; flex-basis: 100%; font-size: 13px; color: var(--muted); margin: 2px 0 4px; }
+.cpg-entry { background: #fff3f0; border-radius: 8px; padding: 12px 14px; font-size: 14px; }
 .cpg-btn { flex: none; white-space: nowrap; background: #ff5722; color: #fff; font-weight: 800;
   font-size: 14px; padding: 9px 16px; border-radius: 8px; }
 .cpg-btn:hover { background: #e64a19; color: #fff; }

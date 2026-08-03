@@ -101,25 +101,60 @@ export function linkFor(category, kw) {
   return { href: `https://www.coupang.com/np/search?channel=user&q=${enc(kw)}`, tracked: false, exact: true };
 }
 
+/** 이 글의 추천 상품: ①채널 재작성본의 글 맞춤 상품(post._products)
+ *  ②네이버 재작성본의 글 맞춤 상품(사이트 빌드 등 변형이 없는 호출부용)
+ *  ③카테고리 기본 풀 — 순서로 폴백. 어떤 채널이든 "글 내용과 직결된" 상품이 우선. */
+function postProducts(post) {
+  const norm = (arr) => (arr || [])
+    .filter((p) => p && p.name && (p.query || p.kw))
+    .map((p) => ({ name: p.name, kw: p.query || p.kw, why: p.why || "" }))
+    .slice(0, 3);
+  const own = norm(post._products);
+  if (own.length >= 2) return own;
+  try {
+    // 순환 의존 방지를 위해 변형 캐시 파일을 직접 읽는다 (rewrite.mjs import 없이)
+    const f = path.join(ROOT, "content", "variants", `${post.slug}.naver.json`);
+    if (fs.existsSync(f)) {
+      const nv = norm(JSON.parse(fs.readFileSync(f, "utf8")).products);
+      if (nv.length >= 2) return nv;
+    }
+  } catch { /* 무시 → 폴백 */ }
+  return norm(PRODUCTS[post.category] || FALLBACK);
+}
+
 /**
- * 글 하나에 삽입할 쿠팡 파트너스 상품 블록 HTML.
+ * 글 하나에 삽입할 쿠팡 파트너스 상품 블록 HTML (사이트·블로거·WP 공용).
+ * 링크 원칙(네이버와 동일): 상품 버튼은 "그 상품이 실제 나오는 링크"만 —
+ *  정밀 추적 링크가 있으면 그것, 없으면 정확한 검색 링크 + 입구 추적 링크 1개.
  * 영문 프로필(jype)은 쿠팡 대상이 아니므로 빈 문자열 반환.
  */
 export function coupangBlock(post) {
   if (site.lang === "en") return "";
-  const prods = (PRODUCTS[post.category] || FALLBACK).slice(0, 3);
+  const prods = postProducts(post);
+  if (!prods.length) return "";
+  let needEntry = false;
   const cards = prods.map((p) => {
-    const { href } = linkFor(post.category, p.kw);
+    const { href, tracked, exact } = linkFor(post.category, p.kw);
+    let btnHref = href;
+    if (!(tracked && exact)) {
+      needEntry = needEntry || tracked;
+      btnHref = `https://www.coupang.com/np/search?channel=user&q=${encodeURIComponent(p.kw)}`;
+    }
     return `<li class="cpg-item">
       <span class="cpg-name">${esc(p.name)}</span>
-      <a class="cpg-btn" href="${esc(href)}" target="_blank" rel="nofollow sponsored noopener">🔥 쿠팡 최저가 확인</a>
+      ${p.why ? `<span class="cpg-why">${esc(p.why)}</span>` : ""}
+      <a class="cpg-btn" href="${esc(btnHref)}" target="_blank" rel="nofollow sponsored noopener">🔥 지금 최저가 보러가기</a>
     </li>`;
   }).join("");
+  const entry = needEntry
+    ? `<p class="cpg-entry">🧡 쿠팡에서 구매 예정이라면 <a href="${esc(linkFor(post.category, "").href)}" target="_blank" rel="nofollow sponsored noopener"><b>이 링크로 먼저 들어간 뒤</b></a> 검색해 주세요. 가격은 같고, 블로그 운영에 큰 도움이 됩니다.</p>`
+    : "";
   // 고지 문구는 글 상단 affiliate-disclosure 에서 이미 노출됨(중복 방지 위해 여기선 짧게 재고지)
   return `<aside class="coupang-block" aria-label="쿠팡 추천 상품">
-  <div class="cpg-head">🛒 이 글과 함께 보면 좋은 <b>인기 상품 최저가</b></div>
-  <p class="cpg-sub">가격은 수시로 바뀌니, 지금 <b>쿠팡 최저가</b>를 눌러 바로 확인해 보세요.</p>
+  <div class="cpg-head">🛒 이 글 보고 바로 챙기면 좋은 <b>추천템 최저가</b></div>
+  <p class="cpg-sub">가격은 수시로 바뀌니, <b>지금 최저가</b>를 눌러 바로 확인해 보세요.</p>
   <ul class="cpg-list">${cards}</ul>
+  ${entry}
   <p class="cpg-disc">${esc(site.affiliate.coupang.disclosure)}</p>
 </aside>`;
 }

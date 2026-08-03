@@ -869,7 +869,9 @@ ${scheduleSection()}
     <table>${header}<tbody id="nv-todobody"></tbody></table>
   </div>
   <details class="card" style="margin-top:12px"><summary><b>📚 전체 원고 보관함</b> (<span id="nv-allcount">${nd.length}</span>편 · 최신순)</summary>
-    <table>${header}<tbody id="nv-allbody">${nd.map((p, i) => nvRow(p, i)).join("")}</tbody></table>
+    <table>${header}<tbody id="nv-allbody">${[...nd]
+      .sort((a, b) => (["season", "life"].includes(b.category) ? 1 : 0) - (["season", "life"].includes(a.category) ? 1 : 0))
+      .map((p, i) => nvRow(p, i)).join("")}</tbody></table>
   </details>`;
   })()}
   <div class="note">⚠️ <b>운영 원칙 3가지</b><br>
