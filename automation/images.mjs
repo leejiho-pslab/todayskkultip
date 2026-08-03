@@ -241,6 +241,10 @@ export function genSectionCards(post, headings) {
   return hs.length;
 }
 
+// 다른 이미지 생성기(naver-images.mjs 등)가 재사용하는 저수준 렌더 헬퍼
+export { shoot };
+export const FONT_FACE = FF;
+
 function genBrand() { genLogo(); genOgDefault(); genFavicon(); genProfile(); }
 function genCovers() {
   const posts = loadPosts();

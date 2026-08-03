@@ -63,6 +63,9 @@ function runSoft(scriptRelPath, label) {
   // — 빌드(네이버 원고) 전에 실행해 이번 런부터 고유 원고가 반영되게 한다
   if (!paused) runSoft("automation/rewrite.mjs", "1.7) 채널별 고유 원고 재작성");
 
+  // 네이버 전용 고품질 이미지(사이트 커버와 다른 비주얼) — Chrome 없으면 조용히 건너뜀
+  if (!paused) runSoft("automation/naver-images.mjs", "1.8) 네이버 전용 이미지 생성");
+
   run("automation/build.mjs", "2) 정적 사이트 빌드");
 
   if (doBlogger) {

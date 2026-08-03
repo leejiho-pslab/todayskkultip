@@ -25,9 +25,19 @@ const coverAbs = (slug, sfx = "") => absUrl(`/assets/covers/${slug}${sfx}.png`);
 const imgTag = (u, alt) =>
   `<figure style="margin:14px 0"><img src="${u}" alt="${alt}" style="max-width:100%;height:auto;border-radius:8px"></figure>`;
 
-/** 글의 사용 가능한 이미지 절대주소 목록(대표 → 섹션 카드 순) */
+/** 글의 사용 가능한 이미지 절대주소 목록.
+ *  네이버 전용 이미지(assets/naver/<slug>-n*.png — 힉스필드/렌더 제작)가 있으면 그것만 사용
+ *  (사이트 커버와 다른 비주얼 = 유사문서 신호 차단). 없으면 커버/섹션 카드로 폴백. */
 export function postImages(slug, max = 8) {
-  const out = [];
+  const nv = [];
+  for (let k = 0; k < 6; k++) {
+    for (const ext of [".jpg", ".png"]) { // jpg=실사(AI 사진), png=디자인 카드 — 혼합 구성
+      const f = path.join(ROOT, "src", "assets", "naver", `${slug}-n${k}${ext}`);
+      if (fs.existsSync(f)) { nv.push(absUrl(`/assets/naver/${slug}-n${k}${ext}`)); break; }
+    }
+  }
+  if (nv.length >= 2) return nv;
+  const out = [...nv];
   if (fs.existsSync(coverFile(slug))) out.push(coverAbs(slug));
   for (let k = 0; k < max; k++) {
     if (fs.existsSync(coverFile(slug, `-s${k}`))) out.push(coverAbs(slug, `-s${k}`));
