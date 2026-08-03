@@ -18,6 +18,7 @@ import { POSTS_DIR, loadPosts, fixLeftoverBold } from "./lib.mjs";
 import { absUrl, affiliateDisclosureLines } from "./render.mjs";
 import { coupangBlock } from "./coupang.mjs";
 import { channelVariant } from "./variation.mjs";
+import { ensureVariant, applyVariant } from "./rewrite.mjs";
 import { t } from "./i18n.mjs";
 
 function getClient() {
@@ -32,17 +33,30 @@ function getClient() {
   return google.blogger({ version: "v3", auth: oauth2 });
 }
 
-/** 블로거용 본문 HTML 생성 (canonical 링크 + 간단 푸터 포함) */
+/** 블로거용 본문 HTML 생성 (canonical 링크 + 간단 푸터 포함)
+ *  - post._rewritten(LLM 전면 재작성)이면 재작성 본문을 그대로 사용(이미 고유 문서)
+ *  - 아니면 결정적 변형(도입/요약/마무리/FAQ 순서)으로 폴백 */
 function bloggerHtml(post) {
-  // 채널별 변형(중복 콘텐츠 방지): 블로거 전용 도입/요약/마무리 + FAQ 순서
-  const v = channelVariant(post, "blogger");
-  // 제휴 고지: 본문에 제휴 링크가 있는 글은 발행 채널 어디서든 고지 문구 필수
   const disclosure = affiliateDisclosureLines(post)
     .map((l) => `<p><em>${l}</em></p>`)
     .join("");
   // 원문 링크: 검색엔진이 자체 사이트를 원본으로 인식하도록 유도(중복 콘텐츠 잠식 방지)
   const canonical = absUrl(post.path);
-  return `${disclosure}${v.introHtml}${v.summaryHtml}${v.bodyHtml}${v.faqHtml}${v.outroHtml}
+  let core;
+  if (post._rewritten) {
+    const body = fixLeftoverBold(marked.parse(post.body || ""));
+    const summary = post.summary
+      ? `<div style="background:#fff8e6;border:1px solid #ffe3a3;border-radius:10px;padding:12px 16px;margin:16px 0"><strong>📌 요약</strong><br>${post.summary}</div>`
+      : "";
+    const faq = (post.faqs || []).length
+      ? `<h2>${t.faqHeading}</h2>` + post.faqs.map((f) => `<h3>${f.q}</h3><p>${f.a}</p>`).join("")
+      : "";
+    core = `${summary}${body}${faq}`;
+  } else {
+    const v = channelVariant(post, "blogger");
+    core = `${v.introHtml}${v.summaryHtml}${v.bodyHtml}${v.faqHtml}${v.outroHtml}`;
+  }
+  return `${disclosure}${core}
 ${coupangBlock(post)}
 <hr>
 <p><small>${t.syndicationFooter(canonical, site.name)}</small></p>`;
@@ -90,8 +104,10 @@ async function main() {
   let failed = 0;
   for (const post of pending) {
     try {
-      console.log(`[blogger] 발행: ${post.title}`);
-      const data = await publishOne(blogger, blogId, post);
+      // 채널 전용 전면 재작성본(제목~본문 고유) — 실패 시 원본+결정적 변형으로 폴백
+      const vpost = applyVariant(post, await ensureVariant(post, "blogger"));
+      console.log(`[blogger] 발행: ${vpost.title}${vpost._rewritten ? " (고유 재작성본)" : ""}`);
+      const data = await publishOne(blogger, blogId, vpost);
       markPublished(post.file);
       console.log(`[blogger] 완료: ${data.url || data.id}`);
     } catch (e) {

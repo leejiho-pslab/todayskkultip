@@ -16,6 +16,7 @@ import { site } from "../config/site.config.js";
 import { fixLeftoverBold, isEntertainment } from "./lib.mjs";
 import { absUrl } from "./render.mjs";
 import { channelVariant } from "./variation.mjs";
+import { loadVariant, applyVariant } from "./rewrite.mjs";
 
 const DISCLOSURE =
   "※ 이 포스팅은 네이버 쇼핑커넥트 활동의 일환으로, 링크를 통해 구매 시 일정 수수료를 제공받을 수 있습니다.";
@@ -76,10 +77,24 @@ function productBlock(p, i) {
 <p><b>👉 카드를 눌러 오늘 최저가를 직접 확인해 보세요.</b></p>`;
 }
 
-/** 글 1건 → 네이버 붙여넣기용 서식 HTML */
+/** 글 1건 → 네이버 붙여넣기용 서식 HTML
+ *  - content/variants 에 네이버 전용 전면 재작성본이 있으면 그것을 사용(제목~본문 고유)
+ *  - 없으면 결정적 변형으로 폴백 (rewrite.mjs 가 매 실행 최신 글부터 백필) */
 export function naverDraftHtml(post) {
-  // 채널별 변형(중복 콘텐츠 방지): 네이버 전용 도입/요약/마무리 + FAQ 순서
-  const v = channelVariant(post, "naver");
+  const rw = loadVariant(post.slug, "naver");
+  post = applyVariant(post, rw);
+  let v;
+  if (post._rewritten) {
+    v = {
+      introHtml: "",
+      summaryHtml: post.summary ? `<p style="background:#eefaf0;border-radius:8px;padding:12px 14px"><strong>✅ 먼저 결론부터</strong><br>${post.summary}</p>` : "",
+      bodyHtml: fixLeftoverBold(marked.parse(post.body || "")),
+      faqHtml: (post.faqs || []).length ? `<h2>자주 묻는 질문</h2>` + post.faqs.map((f) => `<h3>Q. ${f.q}</h3><p>${f.a}</p>`).join("") : "",
+      outroHtml: "",
+    };
+  } else {
+    v = channelVariant(post, "naver");
+  }
   // 본문 내부 링크는 절대주소로 (출처 역할)
   const body = v.bodyHtml.replace(/(src|href)="\/(?!\/)/g, (m, attr) => `${attr}="${site.url.replace(/\/+$/, "")}/`);
 
@@ -111,8 +126,10 @@ export function writeNaverDrafts(dashboardDir, posts) {
   const list = [];
   // 연예(팬라이프) 글은 네이버 블로그에 발행하지 않는다(운영자 정책) — 원고에서 제외.
   posts = posts.filter((p) => !isEntertainment(p.category));
-  for (const p of posts) {
-    const html = naverDraftHtml(p);
+  for (const p0 of posts) {
+    // 목록/제목도 재작성본 기준으로 노출(운영자가 복사하는 제목 = 네이버 고유 제목)
+    const p = applyVariant(p0, loadVariant(p0.slug, "naver"));
+    const html = naverDraftHtml(p0);
     // 복사 버튼용 순수 서식 조각 (뷰어 페이지와 별도)
     fs.writeFileSync(path.join(dir, `${p.slug}.frag.html`), html, "utf8");
     fs.writeFileSync(path.join(dir, `${p.slug}.html`),

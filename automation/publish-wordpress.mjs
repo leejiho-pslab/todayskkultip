@@ -20,6 +20,7 @@ import { ROOT, POSTS_DIR, loadPosts, fixLeftoverBold } from "./lib.mjs";
 import { absUrl, affiliateDisclosureLines, esc } from "./render.mjs";
 import { coupangBlock } from "./coupang.mjs";
 import { channelVariant } from "./variation.mjs";
+import { ensureVariant, applyVariant } from "./rewrite.mjs";
 import { t } from "./i18n.mjs";
 
 // 커버 이미지가 로컬(레포)에 있으면 = 사이트에 배포돼 있음 → 절대 URL 로 참조 가능
@@ -76,8 +77,20 @@ export function wpHtml(post) {
   const hero = coverExists(post.slug)
     ? `<figure><img src="${coverUrl(post.slug)}" alt="${esc(post.title)}" style="max-width:100%;height:auto;border-radius:10px" loading="eager"></figure>`
     : "";
-  // 채널별 변형(중복 콘텐츠 방지): 워드프레스 전용 도입/요약/마무리 + FAQ 순서
-  const v = channelVariant(post, "wordpress");
+  // 콘텐츠 조각: LLM 전면 재작성본이면 그대로(이미 고유 문서), 아니면 결정적 변형 폴백
+  let v;
+  if (post._rewritten) {
+    const bodyHtml = fixLeftoverBold(marked.parse(post.body || ""));
+    const summaryHtml = post.summary
+      ? `<blockquote style="border-left:4px solid #4f7cff;background:#f5f8ff;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0"><strong>${t.summaryLabel || "요약"}</strong><br>${esc(post.summary)}</blockquote>`
+      : "";
+    const faqHtml = (post.faqs || []).length
+      ? `<h2>${t.faqHeading}</h2>` + post.faqs.map((f) => `<h3>${f.q}</h3><p>${f.a}</p>`).join("")
+      : "";
+    v = { introHtml: "", summaryHtml, bodyHtml, faqHtml, outroHtml: "" };
+  } else {
+    v = channelVariant(post, "wordpress");
+  }
   const body = insertSectionImages(v.bodyHtml, post);
   // 제휴 고지: 상단 대신 상품 블록 바로 위에 배치(첫인상은 콘텐츠, 고지는 링크 근처)
   const disclosure = affiliateDisclosureLines(post)
@@ -171,8 +184,10 @@ async function main() {
   let failed = 0;
   for (const post of pending) {
     try {
-      console.log(`[wordpress] 발행: ${post.title}`);
-      const data = wpcom ? await publishOneWpcom(post) : await publishOne(client, post);
+      // 채널 전용 전면 재작성본(제목~본문 고유) — 실패 시 원본+결정적 변형으로 폴백
+      const vpost = applyVariant(post, await ensureVariant(post, "wordpress"));
+      console.log(`[wordpress] 발행: ${vpost.title}${vpost._rewritten ? " (고유 재작성본)" : ""}`);
+      const data = wpcom ? await publishOneWpcom(vpost) : await publishOne(client, vpost);
       markPublished(post.file);
       console.log(`[wordpress] 완료: ${data.URL || data.link || data.ID || data.id}`);
     } catch (e) {
