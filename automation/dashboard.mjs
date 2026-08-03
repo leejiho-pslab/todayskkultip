@@ -832,13 +832,18 @@ ${scheduleSection()}
     <div class="row"><div>③ <b>[📋 원고]</b> 버튼 → 화면 <b>본문칸</b>에 붙여넣기
       — 원고에 <b>이미지 3장 이상</b>이 포함돼 있어 붙여넣으면 자동 업로드됩니다
       (안 붙으면 [열기] 페이지 상단의 이미지 안내 사용)</div></div>
-    <div class="row"><div>④ 본문 속 <b>파란 박스</b>가 시키는 대로 <b>글감→쇼핑</b>에서 상품 카드 3개 삽입 → 발행.
-      카드가 상품 <b>공식 이미지·가격·판매처 출처</b>를 자동으로 넣어주고, 쇼핑커넥트 연동 채널이면 <b>수수료 링크</b>가 됩니다.</div></div>
+    <div class="row"><div>④ 본문 끝 <b>"🛒 함께 준비하면 좋은 것"</b> 각 소제목 아래에 상품 카드 삽입 → 발행.<br>
+      에디터 오른쪽 <b>글감</b> 버튼 → <b>쇼핑</b> 탭 → 아래 표의 <b>[검색어]</b> 버튼으로 복사한 검색어 붙여넣기 → 상품 클릭.
+      카드가 상품 <b>공식 이미지·가격·판매처 출처</b>를 자동으로 넣어주고, 쇼핑커넥트 연동 채널이면 <b>수수료 링크</b>가 됩니다.<br>
+      <span class="mini">※ 원고에는 운영자용 안내문이 없습니다 — 카드를 못 넣고 발행해도 글이 어색하지 않아요.</span></div></div>
   </div>
   <div class="card" style="margin-top:12px"><table><thead><tr><th>후킹 제목(복사용)</th><th>카테고리</th><th>복사</th></tr></thead><tbody>
   ${nd.slice().reverse().map((p) => `<tr>
     <td>${esc(p.hooks[0])}<div class="d">원제: ${esc(p.title)} · ${esc(p.date)}
-      ${p.unique ? ' · <b style="color:#2e7d32">✍ 네이버 전용 고유원고</b>' : ""}${p.imgs ? ` · 🖼 이미지 ${p.imgs}장 포함` : ""}</div></td>
+      ${p.unique ? ' · <b style="color:#2e7d32">✍ 네이버 전용 고유원고</b>' : ""}${p.imgs ? ` · 🖼 이미지 ${p.imgs}장 포함` : ""}</div>
+      ${(p.products || []).length ? `<div class="d" style="margin-top:4px">🛒 카드 검색어:
+        ${(p.products || []).map((pr) => `<button class="copybtn" style="font-size:11px;padding:2px 8px"
+          onclick="copyText(this,${JSON.stringify(pr.query).replace(/"/g, "&quot;")})">${esc(pr.query)}</button>`).join(" ")}</div>` : ""}</td>
     <td>${esc(catName(p.category))}</td>
     <td style="white-space:nowrap">
       <button class="copybtn" onclick="copyText(this,${JSON.stringify(p.hooks[0]).replace(/"/g, "&quot;")})">제목</button>

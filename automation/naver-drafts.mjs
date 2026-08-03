@@ -104,15 +104,19 @@ export function hookTitles(post) {
   ];
 }
 
+/** 독자용 추천 문단 — 운영자 지시문 없음(그대로 발행돼도 자연스러운 글).
+ *  운영자는 대시보드의 [검색어 복사] 안내에 따라 각 소제목 아래에 쇼핑 카드만 끼워 넣는다. */
 function productBlock(p, i) {
   return `
-<h3>🛒 추천템 ${i + 1}. ${p.name}</h3>
-<p><b>왜 필요한가:</b> ${p.why}</p>
-<p style="background:#f2f6ff;border-radius:8px;padding:12px 14px">
-📌 <b>[여기에 상품 카드 넣기]</b> — 에디터 오른쪽 <b>글감</b> 버튼 → <b>쇼핑</b> 탭 → 검색창에
-<b>「${p.query}」</b> 입력 → 마음에 드는 상품 클릭.<br>
-상품 <b>공식 이미지·가격·판매처 출처가 자동으로</b> 들어가고, 쇼핑커넥트 채널이면 수수료 링크로 연결됩니다.</p>
-<p><b>👉 카드를 눌러 오늘 최저가를 직접 확인해 보세요.</b></p>`;
+<h3>🛒 함께 준비하면 좋은 것 ${i + 1}. ${p.name}</h3>
+<p>${p.why}</p>`;
+}
+
+/** 이 글의 추천 상품 목록: 재작성본(글 맞춤 LLM 선정) 우선, 없으면 카테고리 기본 풀 */
+export function draftProducts(post, rw) {
+  const fromRw = (rw?.products || []).filter((p) => p?.name && p?.query && p?.why);
+  if (fromRw.length >= 2) return fromRw.slice(0, 3);
+  return (PRODUCTS[post.category] || PRODUCT_FALLBACK).slice(0, 3);
 }
 
 /** 글 1건 → 네이버 붙여넣기용 서식 HTML
@@ -138,7 +142,7 @@ export function naverDraftHtml(post) {
   // 이미지 3장+ 삽입(대표 + 소제목 카드) — 붙여넣기 시 네이버가 자동 업로드
   body = insertImages(body, post.slug, post.title).html;
 
-  const prods = (PRODUCTS[post.category] || PRODUCT_FALLBACK).slice(0, 3);
+  const prods = draftProducts(post, rw);
   const tags = (post.keywords || []).concat(post.tags || []).slice(0, 8)
     .map((k) => `#${String(k).replace(/\s+/g, "")}`).join(" ");
 
@@ -148,8 +152,8 @@ ${v.summaryHtml}
 ${body}
 ${v.faqHtml}
 <hr>
-<h2>💰 이 글 보고 바로 쓰는 추천템 (오늘 최저가 확인)</h2>
-<p>아래 제품들은 글 내용과 직접 관련된 것만 골랐습니다. 가격은 수시로 바뀌니 <b>카드에서 오늘 가격을 꼭 확인</b>하세요.</p>
+<h2>💰 이 글 내용, 실전에서 챙기면 좋은 것들</h2>
+<p>글에서 다룬 내용을 실제로 해보면서 유용했던 것들만 추렸어요. 가격은 수시로 바뀌니 <b>오늘 가격을 한 번 확인</b>해 보시는 걸 추천드려요.</p>
 ${prods.map(productBlock).join("\n")}
 ${v.outroHtml}
 <hr>
@@ -168,7 +172,8 @@ export function writeNaverDrafts(dashboardDir, posts) {
   posts = posts.filter((p) => !isEntertainment(p.category));
   for (const p0 of posts) {
     // 목록/제목도 재작성본 기준으로 노출(운영자가 복사하는 제목 = 네이버 고유 제목)
-    const p = applyVariant(p0, loadVariant(p0.slug, "naver"));
+    const rw = loadVariant(p0.slug, "naver");
+    const p = applyVariant(p0, rw);
     const html = naverDraftHtml(p0);
     // 복사 버튼용 순수 서식 조각 (뷰어 페이지와 별도)
     fs.writeFileSync(path.join(dir, `${p.slug}.frag.html`), html, "utf8");
@@ -189,6 +194,7 @@ ${imgGuide}
       slug: p.slug, title: p.title, hooks: hookTitles(p), category: p.category, date: p.date,
       imgs: postImages(p.slug).length,   // 원고에 포함된 이미지 수
       unique: !!p._rewritten,            // 네이버 전용 전면 재작성본 여부
+      products: draftProducts(p0, rw),   // 카드 삽입용: {name, query, why} — 대시보드 검색어 복사 버튼
     });
   }
   fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(list, null, 2), "utf8");

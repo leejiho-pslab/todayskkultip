@@ -34,7 +34,10 @@ const CHANNEL_BRIEF_KO = {
   wordpress: `워드프레스용. 전문 가이드체("~합니다/~하십시오" 아님, 담백한 설명체). 단계형(Step) 구성으로 재편성,
 표를 1개 이상 재구성. 제목은 절차/체크리스트 지향 롱테일 변형.`,
   naver: `네이버 블로그용. 직접 겪은 후기·경험담 대화체("저는 ~했는데요", "막상 해보니"). 모바일 가독성:
-문단 2~3문장 이하로 짧게, 중간중간 한 줄 강조. 제목은 후기/실사용 지향 롱테일 변형(과장·단정 금지).`,
+문단 2~3문장 이하로 짧게, 중간중간 한 줄 강조. 제목은 후기/실사용 지향 롱테일 변형(과장·단정 금지).
+추가로 products 필드에 "이 글 내용과 실제로 직결되는" 구매 아이템 2~3개를 골라라(일반 카테고리 아이템 금지,
+글의 주제·상황에서 독자가 정말 살 법한 것). name=상품 종류명(브랜드 지어내기 금지), query=네이버 쇼핑 검색어,
+why=독자에게 왜 필요한지 자연스러운 한 문장(후기 톤).`,
 };
 const CHANNEL_BRIEF_EN = {
   blogger: `For Blogger. Friendly blog voice, restructured headings, one relatable example. Title = a different long-tail variant than the original.`,
@@ -60,6 +63,19 @@ const TOOL = {
       faqs: {
         type: "array", description: IS_EN ? "3-4 FAQs, re-worded" : "FAQ 3~4개 — 질문·답변 모두 새 문장으로(원본 FAQ 복사 금지)",
         items: { type: "object", properties: { q: { type: "string" }, a: { type: "string" } }, required: ["q", "a"] },
+      },
+      products: {
+        type: "array",
+        description: "네이버 채널일 때만: 글 내용과 직결되는 추천 상품 2~3개(브랜드 지어내기 금지)",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "상품 종류명 (예: 목쿨링 넥밴드)" },
+            query: { type: "string", description: "네이버 쇼핑 검색어" },
+            why: { type: "string", description: "독자에게 왜 필요한지 후기 톤 한 문장" },
+          },
+          required: ["name", "query", "why"],
+        },
       },
     },
     required: ["title", "description", "summary", "body_markdown", "faqs"],
