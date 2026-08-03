@@ -17,6 +17,7 @@ import { ROOT, fixLeftoverBold, isEntertainment } from "./lib.mjs";
 import { absUrl } from "./render.mjs";
 import { channelVariant } from "./variation.mjs";
 import { loadVariant, applyVariant } from "./rewrite.mjs";
+import { linkFor } from "./coupang.mjs";
 
 // ---- 이미지: 사이트에 배포된 커버/섹션 카드(절대주소)를 원고에 삽입 ----
 // 서식 복사(text/html) → 네이버 에디터 붙여넣기 시 이미지가 자동 업로드된다.
@@ -67,7 +68,7 @@ function insertImages(bodyHtml, slug, title) {
 }
 
 const DISCLOSURE =
-  "※ 이 포스팅은 네이버 쇼핑커넥트 활동의 일환으로, 링크를 통해 구매 시 일정 수수료를 제공받을 수 있습니다.";
+  "※ 이 포스팅은 쿠팡 파트너스 및 네이버 쇼핑커넥트 활동의 일환으로, 링크를 통해 구매 시 일정액의 수수료를 제공받을 수 있습니다.";
 
 // 카테고리별 추천 상품 슬롯 — query 는 [글감→쇼핑] 검색어
 const PRODUCTS = {
@@ -115,11 +116,19 @@ export function hookTitles(post) {
 }
 
 /** 독자용 추천 문단 — 운영자 지시문 없음(그대로 발행돼도 자연스러운 글).
- *  운영자는 대시보드의 [검색어 복사] 안내에 따라 각 소제목 아래에 쇼핑 카드만 끼워 넣는다. */
-function productBlock(p, i) {
-  return `
+ *  수익 연결: 쿠팡 파트너스 추적 링크(카테고리 등록 링크)를 CTA로 삽입 —
+ *  클릭 후 24시간 내 구매 전체에 수수료가 발생하므로 링크만 눌려도 수익화된다.
+ *  (선택) 쇼핑커넥트 카드를 추가로 넣으려면 대시보드의 [검색어 복사] 사용. */
+function productBlock(category) {
+  return (p, i) => {
+    const { href, tracked } = linkFor(category, p.query || p.name);
+    const cta = tracked
+      ? `<p><a href="${href}" target="_blank"><b>👉 ${p.name} 오늘 최저가 확인하기</b></a></p>`
+      : "";
+    return `
 <h3>🛒 함께 준비하면 좋은 것 ${i + 1}. ${p.name}</h3>
-<p>${p.why}</p>`;
+<p>${p.why}</p>${cta}`;
+  };
 }
 
 /** 이 글의 추천 상품 목록: 재작성본(글 맞춤 LLM 선정) 우선, 없으면 카테고리 기본 풀 */
@@ -164,10 +173,8 @@ ${v.faqHtml}
 <hr>
 <h2>💰 이 글 내용, 실전에서 챙기면 좋은 것들</h2>
 <p>글에서 다룬 내용을 실제로 해보면서 유용했던 것들만 추렸어요. 가격은 수시로 바뀌니 <b>오늘 가격을 한 번 확인</b>해 보시는 걸 추천드려요.</p>
-${prods.map(productBlock).join("\n")}
+${prods.map(productBlock(post.category)).join("\n")}
 ${v.outroHtml}
-<hr>
-<p>원문(더 자세한 표와 그림): <a href="${absUrl(post.path)}">${absUrl(post.path)}</a></p>
 <p>${tags}</p>`;
 }
 

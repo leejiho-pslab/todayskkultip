@@ -88,7 +88,7 @@ export function coupangConfigured() {
 /** 추적 링크 우선순위:
  *  ① config 카테고리 링크(운영자 수동 지정) → ② API 딥링크 캐시(상품별) →
  *  ③ config default 링크 → ④ 쿠팡 검색(대체, 추적 안 됨) */
-function linkFor(category, kw) {
+export function linkFor(category, kw) {
   const cat = (LINKS[category] || "").trim();
   const cached = (CACHE[kw] || "").trim();
   const def = (LINKS.default || "").trim();
