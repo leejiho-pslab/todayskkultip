@@ -50,14 +50,42 @@ async function deeplinkBatch(urls) {
   return json.data || [];
 }
 
+/** 해석 대상 검색어 전체 수집:
+ *  ① 카테고리 고정 상품(allSearchTargets)
+ *  ② 네이버 재작성본의 글 맞춤 상품(content/variants/*.naver.json → products[].query)
+ *  ③ 캐시 파일에 등록만 되고 링크가 빈 검색어(운영자/시스템이 예약한 자리)
+ *  이미 링크가 채워진 검색어는 건너뛴다(재호출 낭비·수동 등록 보존). */
+function collectTargets(existing) {
+  const kws = new Set(allSearchTargets().map((t) => t.kw));
+  const variantsDir = path.join(ROOT, "content", "variants");
+  if (fs.existsSync(variantsDir)) {
+    for (const f of fs.readdirSync(variantsDir).filter((x) => x.endsWith(".naver.json"))) {
+      try {
+        const v = JSON.parse(fs.readFileSync(path.join(variantsDir, f), "utf8"));
+        for (const p of v.products || []) if (p?.query) kws.add(p.query);
+      } catch { /* 무시 */ }
+    }
+  }
+  for (const k of Object.keys(existing)) kws.add(k);
+  return [...kws]
+    .filter((kw) => kw && !kw.startsWith("_") && !(existing[kw] || "").trim())
+    .map((kw) => ({ kw, url: `https://www.coupang.com/np/search?channel=user&q=${encodeURIComponent(kw)}` }));
+}
+
+function loadCache() {
+  try { return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8")); } catch { return {}; }
+}
+
 async function main() {
   if (!ACCESS || !SECRET) {
     console.log("[coupang-resolve] COUPANG_ACCESS_KEY/SECRET_KEY 없음 — 딥링크 생성 건너뜀(검색 링크로 대체).");
     return;
   }
-  const targets = allSearchTargets();
+  const cache = loadCache(); // 기존 링크(수동 등록 포함)는 보존하고 빈 것만 채운다
+  const targets = collectTargets(cache);
+  if (!targets.length) { console.log("[coupang-resolve] 새로 해석할 검색어 없음"); return; }
   const urlToKw = new Map(targets.map((t) => [t.url, t.kw]));
-  const cache = {};
+  let added = 0;
   // 오픈API는 한 번에 여러 URL 허용 — 안전하게 배치로 나눠 호출
   const CHUNK = 10;
   for (let i = 0; i < targets.length; i += CHUNK) {
@@ -67,19 +95,18 @@ async function main() {
       for (const d of data) {
         const kw = urlToKw.get(d.originalUrl);
         const link = d.shortenUrl || d.landingUrl;
-        if (kw && link) cache[kw] = link;
+        if (kw && link) { cache[kw] = link; added++; }
       }
     } catch (e) {
       console.warn(`[coupang-resolve] ⚠ 배치 실패(${i}~): ${e.message}`);
     }
   }
-  const n = Object.keys(cache).length;
-  if (!n) {
+  if (!added) {
     console.warn("[coupang-resolve] 생성된 링크 없음 — 키/권한을 확인하세요(검색 링크로 대체됨).");
     return;
   }
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2) + "\n", "utf8");
-  console.log(`[coupang-resolve] 딥링크 ${n}개 생성 → config/coupang-links-cache.json`);
+  console.log(`[coupang-resolve] 딥링크 ${added}개 신규 생성(누적 ${Object.keys(cache).filter((k) => !k.startsWith("_") && cache[k]).length}) → config/coupang-links-cache.json`);
 }
 
 main().catch((e) => {

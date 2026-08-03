@@ -821,6 +821,12 @@ ${scheduleSection()}
 
   // ===== 탭4: 네이버 블로그 =====
   const nd = d.naverDrafts || [];
+  // 쿠팡 정밀 딥링크 상태 — OpenAPI 키 등록 시 자동으로 채워짐(coupang-resolve.mjs)
+  const cpCache = (() => {
+    try { return readJson(path.join(ROOT, "config", "coupang-links-cache.json")); } catch { return {}; }
+  })();
+  const cpKeys = Object.keys(cpCache).filter((k) => !k.startsWith("_"));
+  const cpDone = cpKeys.filter((k) => (cpCache[k] || "").trim()).length;
   const naverTab = `
 <section><h2>🛒 복붙 발행 시스템 <span class="mini">(쇼핑커넥트 수익형 · 원고 ${nd.length}편 준비됨)</span></h2>
   <div class="sub">버튼 한 번으로 <b>서식·추천 상품 슬롯·수익 고지문</b>이 포함된 원고가 복사됩니다.
@@ -832,6 +838,9 @@ ${scheduleSection()}
     <div class="row"><div>③ <b>[📋 원고]</b> 버튼 → 화면 <b>본문칸</b>에 붙여넣기
       — 원고에 <b>이미지 3장 이상</b>이 포함돼 있어 붙여넣으면 자동 업로드됩니다
       (안 붙으면 [열기] 페이지 상단의 이미지 안내 사용)</div></div>
+    <div class="row"><div>💎 <b>정밀 상품 링크</b>: ${cpDone}/${cpKeys.length} 활성
+      ${cpDone ? "— 활성된 상품 CTA는 '정확한 상품+수수료 추적' 링크로 자동 발행됩니다" :
+      "— 쿠팡 OpenAPI 키(COUPANG_ACCESS_KEY/SECRET_KEY) 등록 시 시스템이 전 상품 링크를 자동 생성·적용합니다(파트너스 최종승인 후 발급 가능)"}</div></div>
     <div class="row"><div>④ 본문 끝 <b>"🛒 함께 준비하면 좋은 것"</b> 각 소제목 아래에 상품 카드 삽입 → 발행.<br>
       에디터 오른쪽 <b>글감</b> 버튼 → <b>쇼핑</b> 탭 → 아래 표의 <b>[검색어]</b> 버튼으로 복사한 검색어 붙여넣기 → 상품 클릭.
       카드가 상품 <b>공식 이미지·가격·판매처 출처</b>를 자동으로 넣어주고, 쇼핑커넥트 연동 채널이면 <b>수수료 링크</b>가 됩니다.<br>
