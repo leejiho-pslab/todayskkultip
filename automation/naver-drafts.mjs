@@ -115,20 +115,35 @@ export function hookTitles(post) {
   ];
 }
 
-/** 독자용 추천 문단 — 운영자 지시문 없음(그대로 발행돼도 자연스러운 글).
- *  수익 연결: 쿠팡 파트너스 추적 링크(카테고리 등록 링크)를 CTA로 삽입 —
- *  클릭 후 24시간 내 구매 전체에 수수료가 발생하므로 링크만 눌려도 수익화된다.
- *  (선택) 쇼핑커넥트 카드를 추가로 넣으려면 대시보드의 [검색어 복사] 사용. */
-function productBlock(category) {
-  return (p, i) => {
-    const { href, tracked } = linkFor(category, p.query || p.name);
-    const cta = tracked
-      ? `<p><a href="${href}" target="_blank"><b>👉 ${p.name} 오늘 최저가 확인하기</b></a></p>`
-      : "";
+/** 독자용 추천 섹션 — 운영자 지시문 없음(그대로 발행돼도 자연스러운 글).
+ *  링크 원칙: 상품 CTA 는 반드시 "그 상품이 실제로 나오는 링크"만 단다.
+ *  - 검색어 정밀 추적 링크(coupang-links-cache.json)가 있으면 → 그 링크(정확+수익) ✚ 최선
+ *  - 없으면 → 상품 CTA 는 쿠팡 검색 링크(정확하지만 미추적)로 하고,
+ *    섹션 끝에 카테고리 추적 링크를 "정직한 입구 링크"로 1개만 배치
+ *    (클릭 후 24시간 내 구매 전체에 수수료 — 엉뚱한 상품을 상품명 CTA 로 속이지 않음) */
+function productsSection(category, prods) {
+  let needEntry = false;
+  const blocks = prods.map((p, i) => {
+    const kw = p.query || p.name;
+    const { href, tracked, exact } = linkFor(category, kw);
+    let cta;
+    if (tracked && exact) {
+      cta = `<p><a href="${href}" target="_blank"><b>👉 ${p.name} 오늘 최저가 확인하기</b></a></p>`;
+    } else {
+      // 정확한 상품을 보여주는 검색 링크(미추적) — 수익은 아래 입구 링크가 담당
+      needEntry = needEntry || tracked; // 카테고리 추적 링크가 있을 때만 입구 CTA 노출
+      cta = `<p><a href="https://www.coupang.com/np/search?channel=user&q=${encodeURIComponent(kw)}" target="_blank"><b>👉 쿠팡에서 「${kw}」 최저가 검색하기</b></a></p>`;
+    }
     return `
 <h3>🛒 함께 준비하면 좋은 것 ${i + 1}. ${p.name}</h3>
 <p>${p.why}</p>${cta}`;
-  };
+  }).join("\n");
+  const entry = needEntry
+    ? `<p style="background:#fff3f0;border-radius:8px;padding:12px 14px">🧡 <b>구매 전 부탁 하나!</b> 쿠팡에서 장보실 계획이라면
+<a href="${linkFor(category, "").href}" target="_blank"><b>이 링크로 먼저 들어간 뒤</b></a> 검색해서 구매해 주세요.
+가격은 똑같지만 블로그 운영에 큰 도움이 됩니다. (클릭 후 24시간 내 구매분에 소정의 수수료가 발생해요)</p>`
+    : "";
+  return blocks + "\n" + entry;
 }
 
 /** 이 글의 추천 상품 목록: 재작성본(글 맞춤 LLM 선정) 우선, 없으면 카테고리 기본 풀 */
@@ -173,7 +188,7 @@ ${v.faqHtml}
 <hr>
 <h2>💰 이 글 내용, 실전에서 챙기면 좋은 것들</h2>
 <p>글에서 다룬 내용을 실제로 해보면서 유용했던 것들만 추렸어요. 가격은 수시로 바뀌니 <b>오늘 가격을 한 번 확인</b>해 보시는 걸 추천드려요.</p>
-${prods.map(productBlock(post.category)).join("\n")}
+${productsSection(post.category, prods)}
 ${v.outroHtml}
 <p>${tags}</p>`;
 }

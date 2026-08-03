@@ -92,11 +92,13 @@ export function linkFor(category, kw) {
   const cat = (LINKS[category] || "").trim();
   const cached = (CACHE[kw] || "").trim();
   const def = (LINKS.default || "").trim();
-  if (cat) return { href: cat, tracked: true };
-  if (cached) return { href: cached, tracked: true };
-  if (def) return { href: def, tracked: true };
-  // 대체: 쿠팡 검색 (작동하지만 수익 추적은 안 됨 — API 키/링크 등록 전 임시)
-  return { href: `https://www.coupang.com/np/search?channel=user&q=${enc(kw)}`, tracked: false };
+  // 검색어 정밀 링크(해당 상품으로 정확히 연결)가 최우선 — exact 로 구분해
+  // 호출부가 "정확한 상품 링크"와 "카테고리 공용 링크"를 다르게 취급할 수 있게 한다
+  if (cached) return { href: cached, tracked: true, exact: true };
+  if (cat) return { href: cat, tracked: true, exact: false };
+  if (def) return { href: def, tracked: true, exact: false };
+  // 대체: 쿠팡 검색 (해당 상품은 정확히 보여주지만 수익 추적은 안 됨)
+  return { href: `https://www.coupang.com/np/search?channel=user&q=${enc(kw)}`, tracked: false, exact: true };
 }
 
 /**
