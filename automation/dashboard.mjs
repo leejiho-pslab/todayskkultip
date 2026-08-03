@@ -828,23 +828,22 @@ ${scheduleSection()}
   const cpKeys = Object.keys(cpCache).filter((k) => !k.startsWith("_"));
   const cpDone = cpKeys.filter((k) => (cpCache[k] || "").trim()).length;
   const naverTab = `
-<section><h2>🛒 복붙 발행 시스템 <span class="mini">(쇼핑커넥트 수익형 · 원고 ${nd.length}편 준비됨)</span></h2>
-  <div class="sub">버튼 한 번으로 <b>서식·추천 상품 슬롯·수익 고지문</b>이 포함된 원고가 복사됩니다.
-    네이버 글쓰기 화면에 붙여넣기(Ctrl+V)만 하면 됩니다.</div>
+<section><h2>🛒 복붙 발행 시스템 <span class="mini">(원고 ${nd.length}편 준비됨)</span></h2>
+  <div class="sub">원고에 <b>고유 재작성 본문 + 이미지 3~6장 + 쿠팡 수익 링크 + 고지문</b>이 전부 들어 있습니다.
+    복사 → 붙여넣기 → 발행, 끝. (상품 카드 삽입 같은 추가 작업 없이도 수익 링크가 작동합니다)</div>
   <div class="card">
-    <div class="label">발행 4단계 (글당 5~10분)</div>
+    <div class="label">발행 4단계 (글당 3~5분)</div>
     <div class="row"><div>① <a href="https://blog.naver.com/GoBlogWrite.naver" target="_blank"><b>네이버 글쓰기 열기</b> ↗</a> (로그인돼 있으면 바로 글쓰기 화면)</div></div>
     <div class="row"><div>② 아래 표 <b>[제목]</b> 버튼 → 화면 <b>제목칸</b>에 붙여넣기</div></div>
     <div class="row"><div>③ <b>[📋 원고]</b> 버튼 → 화면 <b>본문칸</b>에 붙여넣기
-      — 원고에 <b>이미지 3장 이상</b>이 포함돼 있어 붙여넣으면 자동 업로드됩니다
+      — 이미지·수익 링크가 함께 붙습니다. <b>이미지가 모두 보이는지만 확인</b>하세요
       (안 붙으면 [열기] 페이지 상단의 이미지 안내 사용)</div></div>
+    <div class="row"><div>④ 오른쪽 위 <b>[발행]</b> 누르기 → 이 표에서 <b>[발행완료] 체크</b> → 다음 글이 자동으로 올라옵니다</div></div>
+    <div class="row"><div><span class="mini">➕ (선택) 수익 한 줄 더: 에디터 오른쪽 <b>글감→쇼핑</b>에서 아래 <b>[검색어]</b> 버튼으로 복사한 검색어를
+      검색해 상품 카드를 "🛒 함께 준비하면 좋은 것" 소제목 아래에 끼우면 쇼핑커넥트 수수료도 추가됩니다. 안 해도 무방.</span></div></div>
     <div class="row"><div>💎 <b>정밀 상품 링크</b>: ${cpDone}/${cpKeys.length} 활성
       ${cpDone ? "— 활성된 상품 CTA는 '정확한 상품+수수료 추적' 링크로 자동 발행됩니다" :
-      "— 쿠팡 OpenAPI 키(COUPANG_ACCESS_KEY/SECRET_KEY) 등록 시 시스템이 전 상품 링크를 자동 생성·적용합니다(파트너스 최종승인 후 발급 가능)"}</div></div>
-    <div class="row"><div>④ 본문 끝 <b>"🛒 함께 준비하면 좋은 것"</b> 각 소제목 아래에 상품 카드 삽입 → 발행.<br>
-      에디터 오른쪽 <b>글감</b> 버튼 → <b>쇼핑</b> 탭 → 아래 표의 <b>[검색어]</b> 버튼으로 복사한 검색어 붙여넣기 → 상품 클릭.
-      카드가 상품 <b>공식 이미지·가격·판매처 출처</b>를 자동으로 넣어주고, 쇼핑커넥트 연동 채널이면 <b>수수료 링크</b>가 됩니다.<br>
-      <span class="mini">※ 원고에는 운영자용 안내문이 없습니다 — 카드를 못 넣고 발행해도 글이 어색하지 않아요.</span></div></div>
+      "— 지금은 상품 CTA=정확한 검색 링크 + 입구 추적 링크 1개로 수익화 중. 쿠팡 OpenAPI 키 등록 시(최종승인 후) 전 상품이 자동으로 정밀 추적 링크로 전환됩니다"}</div></div>
   </div>
   ${(() => {
     // 행 템플릿 (오늘 할 일/보관함 공용) — 최신순, 발행완료 체크는 브라우저(localStorage)에 저장
