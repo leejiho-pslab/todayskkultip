@@ -837,8 +837,9 @@ ${scheduleSection()}
       카드가 상품 <b>공식 이미지·가격·판매처 출처</b>를 자동으로 넣어주고, 쇼핑커넥트 연동 채널이면 <b>수수료 링크</b>가 됩니다.<br>
       <span class="mini">※ 원고에는 운영자용 안내문이 없습니다 — 카드를 못 넣고 발행해도 글이 어색하지 않아요.</span></div></div>
   </div>
-  <div class="card" style="margin-top:12px"><table><thead><tr><th>후킹 제목(복사용)</th><th>카테고리</th><th>복사</th></tr></thead><tbody>
-  ${nd.slice().reverse().map((p) => `<tr>
+  ${(() => {
+    // 행 템플릿 (오늘 할 일/보관함 공용) — 최신순, 발행완료 체크는 브라우저(localStorage)에 저장
+    const nvRow = (p, i) => `<tr data-slug="${esc(p.slug)}" data-idx="${i}">
     <td>${esc(p.hooks[0])}<div class="d">원제: ${esc(p.title)} · ${esc(p.date)}
       ${p.unique ? ' · <b style="color:#2e7d32">✍ 네이버 전용 고유원고</b>' : ""}${p.imgs ? ` · 🖼 이미지 ${p.imgs}장 포함` : ""}</div>
       ${(p.products || []).length ? `<div class="d" style="margin-top:4px">🛒 카드 검색어:
@@ -849,8 +850,20 @@ ${scheduleSection()}
       <button class="copybtn" onclick="copyText(this,${JSON.stringify(p.hooks[0]).replace(/"/g, "&quot;")})">제목</button>
       <button class="copybtn" onclick="copyDraft(this,'${esc(p.slug)}')">📋 원고</button>
       <a href="naver/${esc(p.slug)}.html" target="_blank" class="mini">열기</a>
-    </td></tr>`).join("")}
-  </tbody></table></div>
+      <label class="mini" style="display:block;margin-top:4px"><input type="checkbox" class="nvcb"
+        onchange="nvDone(this,'${esc(p.slug)}')"> 발행완료</label>
+    </td></tr>`;
+    const header = `<thead><tr><th>후킹 제목(복사용)</th><th>카테고리</th><th>복사</th></tr></thead>`;
+    return `
+  <div class="card" style="margin-top:12px">
+    <div class="label">📌 오늘·내일 발행할 것 <span class="mini">(최신 글 중 미발행분 — 하루 1~2편이면 충분해요. 발행 후 [발행완료] 체크)</span></div>
+    <div id="nv-todoempty" class="d" style="display:none">🎉 밀린 발행이 없습니다. 새 글이 생성되면 여기에 나타나요.</div>
+    <table>${header}<tbody id="nv-todobody"></tbody></table>
+  </div>
+  <details class="card" style="margin-top:12px"><summary><b>📚 전체 원고 보관함</b> (<span id="nv-allcount">${nd.length}</span>편 · 최신순)</summary>
+    <table>${header}<tbody id="nv-allbody">${nd.map((p, i) => nvRow(p, i)).join("")}</tbody></table>
+  </details>`;
+  })()}
   <div class="note">⚠️ <b>운영 원칙 3가지</b><br>
     1) <b>"최저가" 단정 금지</b> — 원고는 "오늘 최저가 확인" 같은 <b>확인 유도형</b> 문구만 씁니다(허위·과장광고 제재 예방).<br>
     2) <b>상품 이미지는 반드시 글감 카드로</b> — 판매자 상세페이지 이미지를 복사해 붙이면 출처를 적어도 저작권 침해입니다.<br>
@@ -1057,6 +1070,26 @@ async function copyDraft(btn,slug){
     copied(btn);
   }catch(e){window.open('naver/'+slug+'.html','_blank');}
 }
+// 네이버 발행 할 일 — [발행완료] 체크(localStorage)로 오늘 할 일만 노출
+function nvDone(cb,slug){try{localStorage.setItem('nvdone_'+slug,cb.checked?'1':'0')}catch(e){};nvLayout();}
+function nvLayout(){
+  var all=document.getElementById('nv-allbody'),todo=document.getElementById('nv-todobody');
+  if(!all||!todo)return;
+  var rows=[].slice.call(todo.querySelectorAll('tr')).concat([].slice.call(all.querySelectorAll('tr')));
+  rows.sort(function(a,b){return (+a.getAttribute('data-idx'))-(+b.getAttribute('data-idx'))});
+  rows.forEach(function(r){all.appendChild(r)});
+  var picked=0,done='';
+  rows.forEach(function(r){
+    var s=r.getAttribute('data-slug');
+    try{done=localStorage.getItem('nvdone_'+s)||''}catch(e){done=''}
+    var cb=r.querySelector('.nvcb');if(cb)cb.checked=(done==='1');
+    if(done!=='1'&&picked<4){todo.appendChild(r);picked++;}
+  });
+  var em=document.getElementById('nv-todoempty');if(em)em.style.display=picked?'none':'block';
+  var cnt=document.getElementById('nv-allcount');
+  if(cnt)cnt.textContent=all.querySelectorAll('tr').length;
+}
+nvLayout();
 function showTab(key, btn){
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('.tabs button').forEach(function(b){b.classList.remove('active')});
