@@ -829,13 +829,16 @@ ${scheduleSection()}
     <div class="label">발행 4단계 (글당 5~10분)</div>
     <div class="row"><div>① <a href="https://blog.naver.com/GoBlogWrite.naver" target="_blank"><b>네이버 글쓰기 열기</b> ↗</a> (로그인돼 있으면 바로 글쓰기 화면)</div></div>
     <div class="row"><div>② 아래 표 <b>[제목]</b> 버튼 → 화면 <b>제목칸</b>에 붙여넣기</div></div>
-    <div class="row"><div>③ <b>[📋 원고]</b> 버튼 → 화면 <b>본문칸</b>에 붙여넣기</div></div>
+    <div class="row"><div>③ <b>[📋 원고]</b> 버튼 → 화면 <b>본문칸</b>에 붙여넣기
+      — 원고에 <b>이미지 3장 이상</b>이 포함돼 있어 붙여넣으면 자동 업로드됩니다
+      (안 붙으면 [열기] 페이지 상단의 이미지 안내 사용)</div></div>
     <div class="row"><div>④ 본문 속 <b>파란 박스</b>가 시키는 대로 <b>글감→쇼핑</b>에서 상품 카드 3개 삽입 → 발행.
       카드가 상품 <b>공식 이미지·가격·판매처 출처</b>를 자동으로 넣어주고, 쇼핑커넥트 연동 채널이면 <b>수수료 링크</b>가 됩니다.</div></div>
   </div>
   <div class="card" style="margin-top:12px"><table><thead><tr><th>후킹 제목(복사용)</th><th>카테고리</th><th>복사</th></tr></thead><tbody>
   ${nd.slice().reverse().map((p) => `<tr>
-    <td>${esc(p.hooks[0])}<div class="d">원제: ${esc(p.title)} · ${esc(p.date)}</div></td>
+    <td>${esc(p.hooks[0])}<div class="d">원제: ${esc(p.title)} · ${esc(p.date)}
+      ${p.unique ? ' · <b style="color:#2e7d32">✍ 네이버 전용 고유원고</b>' : ""}${p.imgs ? ` · 🖼 이미지 ${p.imgs}장 포함` : ""}</div></td>
     <td>${esc(catName(p.category))}</td>
     <td style="white-space:nowrap">
       <button class="copybtn" onclick="copyText(this,${JSON.stringify(p.hooks[0]).replace(/"/g, "&quot;")})">제목</button>

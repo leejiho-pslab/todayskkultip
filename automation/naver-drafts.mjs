@@ -13,10 +13,48 @@ import fs from "node:fs";
 import path from "node:path";
 import { marked } from "marked";
 import { site } from "../config/site.config.js";
-import { fixLeftoverBold, isEntertainment } from "./lib.mjs";
+import { ROOT, fixLeftoverBold, isEntertainment } from "./lib.mjs";
 import { absUrl } from "./render.mjs";
 import { channelVariant } from "./variation.mjs";
 import { loadVariant, applyVariant } from "./rewrite.mjs";
+
+// ---- 이미지: 사이트에 배포된 커버/섹션 카드(절대주소)를 원고에 삽입 ----
+// 서식 복사(text/html) → 네이버 에디터 붙여넣기 시 이미지가 자동 업로드된다.
+const coverFile = (slug, sfx = "") => path.join(ROOT, "src", "assets", "covers", `${slug}${sfx}.png`);
+const coverAbs = (slug, sfx = "") => absUrl(`/assets/covers/${slug}${sfx}.png`);
+const imgTag = (u, alt) =>
+  `<figure style="margin:14px 0"><img src="${u}" alt="${alt}" style="max-width:100%;height:auto;border-radius:8px"></figure>`;
+
+/** 글의 사용 가능한 이미지 절대주소 목록(대표 → 섹션 카드 순) */
+export function postImages(slug, max = 8) {
+  const out = [];
+  if (fs.existsSync(coverFile(slug))) out.push(coverAbs(slug));
+  for (let k = 0; k < max; k++) {
+    if (fs.existsSync(coverFile(slug, `-s${k}`))) out.push(coverAbs(slug, `-s${k}`));
+  }
+  return out;
+}
+
+/** 본문 HTML에 이미지 삽입: 대표는 맨 위, 섹션 카드는 각 H2 뒤에 순서대로.
+ *  H2가 적어 3장을 못 채우면 남은 이미지를 본문 끝에 이어 붙여 최소 3장을 보장. */
+function insertImages(bodyHtml, slug, title) {
+  const imgs = postImages(slug);
+  if (!imgs.length) return { html: bodyHtml, used: 0 };
+  let used = 0;
+  let html = imgTag(imgs[0], title) + bodyHtml; // 대표 이미지 최상단
+  used = 1;
+  html = html.replace(/<h2[^>]*>[\s\S]*?<\/h2>/g, (m) => {
+    if (used >= imgs.length) return m;
+    const tag = imgTag(imgs[used], `${title} 관련 이미지 ${used}`);
+    used += 1;
+    return m + tag;
+  });
+  while (used < Math.min(3, imgs.length)) { // 최소 3장 보장(이미지가 있으면)
+    html += imgTag(imgs[used], `${title} 관련 이미지 ${used}`);
+    used += 1;
+  }
+  return { html, used };
+}
 
 const DISCLOSURE =
   "※ 이 포스팅은 네이버 쇼핑커넥트 활동의 일환으로, 링크를 통해 구매 시 일정 수수료를 제공받을 수 있습니다.";
@@ -96,7 +134,9 @@ export function naverDraftHtml(post) {
     v = channelVariant(post, "naver");
   }
   // 본문 내부 링크는 절대주소로 (출처 역할)
-  const body = v.bodyHtml.replace(/(src|href)="\/(?!\/)/g, (m, attr) => `${attr}="${site.url.replace(/\/+$/, "")}/`);
+  let body = v.bodyHtml.replace(/(src|href)="\/(?!\/)/g, (m, attr) => `${attr}="${site.url.replace(/\/+$/, "")}/`);
+  // 이미지 3장+ 삽입(대표 + 소제목 카드) — 붙여넣기 시 네이버가 자동 업로드
+  body = insertImages(body, post.slug, post.title).html;
 
   const prods = (PRODUCTS[post.category] || PRODUCT_FALLBACK).slice(0, 3);
   const tags = (post.keywords || []).concat(post.tags || []).slice(0, 8)
@@ -132,13 +172,24 @@ export function writeNaverDrafts(dashboardDir, posts) {
     const html = naverDraftHtml(p0);
     // 복사 버튼용 순수 서식 조각 (뷰어 페이지와 별도)
     fs.writeFileSync(path.join(dir, `${p.slug}.frag.html`), html, "utf8");
+    const imgs = postImages(p.slug);
+    const imgGuide = imgs.length
+      ? `<details style="background:#eef4ff;border-radius:8px;padding:10px 14px;margin-top:8px"><summary><b>🖼 이미지 ${imgs.length}장 포함</b> — 붙여넣기에 이미지가 안 들어갔다면 클릭</summary>
+<p style="font-size:13px">아래 주소를 하나씩 새 탭에 열어 이미지를 <b>우클릭 → 복사</b> 후 네이버 본문에 붙여넣으세요.</p>
+<ol style="font-size:12px">${imgs.map((u) => `<li><a href="${u}" target="_blank">${u}</a></li>`).join("")}</ol></details>`
+      : "";
     fs.writeFileSync(path.join(dir, `${p.slug}.html`),
       `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${p.title} — 네이버 복붙 원고</title></head>
 <body style="max-width:760px;margin:24px auto;font-family:sans-serif;line-height:1.7">
 <div style="background:#fff7e0;border-radius:8px;padding:12px 14px">이 페이지는 <b>네이버 붙여넣기용 원고</b>입니다.
-대시보드의 [📋 원고 복사] 버튼을 쓰면 서식까지 복사됩니다. 이 페이지에서는 전체 선택(Ctrl+A)→복사(Ctrl+C)로도 가능합니다.</div>
+대시보드의 [📋 원고 복사] 버튼을 쓰면 <b>서식+이미지</b>까지 복사됩니다. 이 페이지에서는 전체 선택(Ctrl+A)→복사(Ctrl+C)로도 가능합니다.</div>
+${imgGuide}
 <hr>${html}</body></html>`, "utf8");
-    list.push({ slug: p.slug, title: p.title, hooks: hookTitles(p), category: p.category, date: p.date });
+    list.push({
+      slug: p.slug, title: p.title, hooks: hookTitles(p), category: p.category, date: p.date,
+      imgs: postImages(p.slug).length,   // 원고에 포함된 이미지 수
+      unique: !!p._rewritten,            // 네이버 전용 전면 재작성본 여부
+    });
   }
   fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(list, null, 2), "utf8");
   return list;
