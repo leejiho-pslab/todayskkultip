@@ -135,7 +135,8 @@ jobs:
           INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
           # 채널
           POSTS_PER_RUN: ${{ github.event.inputs.posts || vars.POSTS_PER_RUN || '1' }}
-          GENERATE: ${{ github.event_name == 'push' && 'false' || (github.event.inputs.generate || 'true') }}
+          # 비용 절감: 새 글 생성은 하루 1회(09시 KST 크론)만 — 15/21시 크론은 발행·빌드만 수행
+          GENERATE: ${{ (github.event_name == 'push' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 12 * * *') && 'false' || (github.event.inputs.generate || 'true') }}
           PUBLISH_BLOGGER: ${{ github.event.inputs.publish_blogger || vars.PUBLISH_BLOGGER || 'false' }}
           BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
           BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
@@ -148,6 +149,7 @@ jobs:
           WORDPRESS_USER: ${{ vars.WORDPRESS_USER }}
           WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
           WORDPRESS_STATUS: ${{ vars.WORDPRESS_STATUS }}
+          REWRITE: ${{ vars.REWRITE || 'true' }}
           PUBLISH_LIMIT: ${{ github.event.inputs.publish_limit || vars.PUBLISH_LIMIT || '2' }}
         run: node automation/run-all.mjs
 

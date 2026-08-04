@@ -61,7 +61,8 @@ function runSoft(scriptRelPath, label) {
 
   // 채널별 고유 재작성본 사전 생성 (blogger/wordpress 발행 임박분 + 네이버 최신분)
   // — 빌드(네이버 원고) 전에 실행해 이번 런부터 고유 원고가 반영되게 한다
-  if (!paused) runSoft("automation/rewrite.mjs", "1.7) 채널별 고유 원고 재작성");
+  // REWRITE=false 면 재작성(LLM) 생략 → 결정적 변형 폴백(무료). 완전 0원 모드용 스위치.
+  if (!paused && process.env.REWRITE !== "false") runSoft("automation/rewrite.mjs", "1.7) 채널별 고유 원고 재작성");
 
   // 쿠팡 딥링크 해석은 재작성(글 맞춤 상품 생성) 뒤에 실행해야
   // 이번 런에 생성된 검색어까지 같은 런에서 정밀 링크로 바뀐다

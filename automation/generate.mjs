@@ -17,7 +17,9 @@ import { rankByTrend } from "./trend.mjs";
 import { pendingTopics, editorialNotes, markRequestDone } from "./requests.mjs";
 import { POSTS_DIR, ensureDir, slugify, todayKST, loadPosts, existingTitles, isEntertainment } from "./lib.mjs";
 
-const MODEL = process.env.CONTENT_MODEL || "claude-sonnet-4-6";
+// 비용 절감(2026-08-03 운영자 지시): 수익 발생 전까지 본문도 경량 모델(haiku)로 생성.
+// 품질을 올리고 싶으면 레포 Variables 에 CONTENT_MODEL=claude-sonnet-4-6 등록으로 즉시 복귀.
+const MODEL = process.env.CONTENT_MODEL || "claude-haiku-4-5-20251001";
 const IS_EN = String(site.lang || "ko").toLowerCase().startsWith("en");
 
 const ARTICLE_TOOL = IS_EN

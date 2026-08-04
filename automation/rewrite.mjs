@@ -138,7 +138,7 @@ async function main() {
   if (!process.env.ANTHROPIC_API_KEY) { console.log("[rewrite] API 키 없음 — 건너뜀"); return; }
   const posts = loadPosts();
   const LIMIT = Number(process.env.PUBLISH_LIMIT || 2);
-  const NAVER_N = Number(process.env.REWRITE_NAVER_LIMIT || 3);
+  const NAVER_N = Number(process.env.REWRITE_NAVER_LIMIT || 2); // 비용 절감: 발행 페이스(1~2편/일)에 맞춤
   const jobs = [];
   for (const p of posts.filter((x) => x.channels?.blogger && !x.published?.blogger).slice(0, LIMIT)) jobs.push([p, "blogger"]);
   for (const p of posts.filter((x) => x.channels?.wordpress && !x.published?.wordpress).slice(0, LIMIT)) jobs.push([p, "wordpress"]);
