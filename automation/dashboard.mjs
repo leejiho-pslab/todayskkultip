@@ -858,10 +858,12 @@ ${scheduleSection()}
       <button class="copybtn" onclick="copyText(this,${JSON.stringify(p.hooks[0]).replace(/"/g, "&quot;")})">제목</button>
       <button class="copybtn" onclick="copyDraft(this,'${esc(p.slug)}')">📋 원고</button>
       <a href="naver/${esc(p.slug)}.html" target="_blank" class="mini">열기</a>
-      <label class="mini" style="display:block;margin-top:4px"><input type="checkbox" class="nvcb"
-        onchange="nvDone(this,'${esc(p.slug)}')"> 발행완료</label>
+    </td>
+    <td style="text-align:center;vertical-align:middle">
+      <input type="checkbox" class="nvcb" style="width:20px;height:20px;cursor:pointer"
+        onchange="nvDone(this,'${esc(p.slug)}')" title="발행 완료로 표시 — 체크하면 다음 글이 올라옵니다">
     </td></tr>`;
-    const header = `<thead><tr><th>후킹 제목(복사용)</th><th>카테고리</th><th>복사</th></tr></thead>`;
+    const header = `<thead><tr><th>후킹 제목(복사용)</th><th>카테고리</th><th>복사</th><th style="text-align:center">발행완료</th></tr></thead>`;
     return `
   <div class="card" style="margin-top:12px">
     <div class="label">📌 오늘·내일 발행할 것 <span class="mini">(최신 글 중 미발행분 — 하루 1~2편이면 충분해요. 발행 후 [발행완료] 체크)</span></div>
@@ -880,44 +882,7 @@ ${scheduleSection()}
     3) <b>유사문서 예방</b> — 제목은 후킹 제목을 쓰고, 붙여넣은 뒤 도입부 1~2문장을 본인 말로 바꾸면 더 안전합니다.</div>
 </section>
 
-<section><h2>🟢 채널 상태</h2>
-  <div class="card">
-    <div class="set"><div><span class="dot off"></span>자동 발행</div><div class="v">불가(네이버 공식 API 없음) → 위 복붙 시스템으로 반자동</div></div>
-    <div class="set"><div><span class="dot on"></span>쇼핑커넥트 수익화</div><div class="v">원고에 상품 슬롯·고지문 자동 포함</div></div>
-  </div>
-  <div class="note">비공식 자동화(Selenium 등)는 네이버 약관 위반·계정 차단 위험이 있어 쓰지 않습니다.</div></section>
-
-<section><h2>💰 네이버 애드포스트 (이 채널의 수익화)</h2>
-  <div class="card">${setRows(d.affiliate.adpost)}
-    <div class="note">애드포스트 심사 기준: <b>개설 90일+ · 공개 글 50개+ · 복사 콘텐츠 없음 · 방문자 지표</b>.
-      블로그를 아직 안 만들었다면 <b>오늘 개설</b>하세요 — 90일 시계가 개설일부터 돌아갑니다.
-      신청: <a href="https://adpost.naver.com" target="_blank">adpost.naver.com</a></div></section>
-
-<section><h2>📥 기획안 · 원고 다운로드 (네이버 수동 발행용)</h2>
-  <div class="sub">네이버는 직접 발행해야 하므로, 아래 파일을 받아 네이버 에디터에서 다듬어 발행하세요.</div>
-  <div class="linkrow">
-    <a href="naver-content-pack.md" download>📦 통합 기획안+전체 원고 (.md)</a>
-    <a href="plan.md" download>📥 기획안 (.md)</a>
-    <a href="plan.csv" download>📥 스케줄 (.csv)</a>
-  </div>
-  <div class="note">⚠️ <b>그대로 복붙 금지</b> — 사이트에 이미 게시된 글을 그대로 붙여넣으면
-    네이버 검색의 <b>유사문서 필터</b>에 걸려 노출이 제한되고, <b>애드포스트 심사에서 '복사 콘텐츠'로 탈락</b>할 수 있습니다.
-    원고를 뼈대로 삼아 도입부·소제목 구성·어투를 바꾸고 본인 경험 한두 문단을 더해 발행하세요(글당 10~15분).</div>
-</section>
-
-${scheduleSection()}
-
-<section><h2>📝 원고 다운로드 (글별)</h2>
-  <div class="card"><table><thead><tr><th>제목</th><th>카테고리</th><th>게시일</th><th>원고</th></tr></thead><tbody>
-  ${postRows(ch.site.posts, false)}</tbody></table></div></section>
-
-<section><h2>🔗 네이버 노출 보조 (적용됨)</h2>
-  <div class="card">
-    <div class="set"><div><span class="dot ${site.analytics.naverWebmaster ? "on" : "off"}"></span>네이버 서치어드바이저 소유확인</div>
-      <div class="v">${site.analytics.naverWebmaster ? "설정됨" : "미설정 (NAVER_SITE_VERIFICATION)"}</div></div>
-    <div class="set"><div><span class="dot on"></span>RSS 피드 제공</div><div class="v">/rss.xml</div></div>
-  </div>
-  <div class="note">자체 사이트 글을 네이버 검색에 노출시키려면 <a href="https://searchadvisor.naver.com" target="_blank">네이버 서치어드바이저</a>에 사이트를 등록하고 사이트맵을 제출하세요.</div></section>`;
+`;
 
   // ===== 탭: 광고사이트(수익화) — 애드센스·쇼핑커넥트·쿠팡파트너스 =====
   const adsTab = `
