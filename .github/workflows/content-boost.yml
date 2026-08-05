@@ -1,0 +1,87 @@
+name: 위성 콘텐츠 부스트 (애드센스 승인용)
+
+# kkultip·jype 프로필 글이 목표(기본 30편)에 못 미치면 매일 소량(기본 6편/일)씩
+# 고품질(sonnet)로 생성해 채운다 — "가치가 별로 없는 콘텐츠" 반려의 최우선 원인이
+# 콘텐츠 수 부족(각 8편)이기 때문. 목표 도달 시 자동으로 아무 것도 안 함.
+# 생성된 글은 push → sync-sites 가 위성 레포로 전달한다.
+# 하루 6편/프로필로 제한: 하루에 수십 편 쏟아지면 자동생성 신호로 오히려 불리.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "프로필당 목표 글 수"
+        default: "30"
+      per_run:
+        description: "이번 실행 프로필당 최대 생성 수"
+        default: "6"
+  schedule:
+    - cron: "30 1 * * *" # 매일 10:30 KST — 목표 도달 시 자동 스킵
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "content-boost"
+  cancel-in-progress: false
+
+jobs:
+  boost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Chrome 설치 (커버 이미지용 — 실패해도 계속)
+        id: setupchrome
+        continue-on-error: true
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: 이미지 폰트 준비
+        continue-on-error: true
+        run: npm i --no-save pretendard
+
+      - name: 프로필별 부족분 생성
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CHROME_BIN: ${{ steps.setupchrome.outputs.chrome-path }}
+          # 승인 심사용 콘텐츠는 품질 우선 — 본문만 sonnet (일일 정규 발행은 haiku 유지)
+          CONTENT_MODEL: claude-sonnet-4-6
+          # 시장조사 스코프는 default 니치 기준이라 위성 주제와 안 맞음 → 제한 해제
+          RESEARCH_ONLY: "false"
+          TARGET: ${{ github.event.inputs.target || '30' }}
+          PER_RUN: ${{ github.event.inputs.per_run || '6' }}
+        shell: bash {0}
+        run: |
+          for P in kkultip jype; do
+            N=$(SITE_PROFILE=$P node -e 'import("./automation/lib.mjs").then(m=>console.log(m.loadPosts().length))')
+            DEFICIT=$(( TARGET - N ))
+            if [ "$DEFICIT" -le 0 ]; then
+              echo "[$P] ${N}편 — 목표(${TARGET}) 도달, 건너뜀"
+              continue
+            fi
+            GEN=$(( DEFICIT < PER_RUN ? DEFICIT : PER_RUN ))
+            echo "[$P] 현재 ${N}편 → ${GEN}편 생성 (목표 ${TARGET})"
+            SITE_PROFILE=$P node automation/generate.mjs "$GEN" || echo "[$P] ⚠ 일부 실패 — 다음 실행에서 재시도"
+          done
+
+      - name: 생성 글 커밋·푸시
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/posts src/assets/covers config/topics || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: 위성 콘텐츠 부스트 ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push
+          else
+            echo "커밋할 신규 글 없음"
+          fi

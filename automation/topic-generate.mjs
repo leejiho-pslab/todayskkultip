@@ -119,7 +119,9 @@ export async function ensureTopicPool(min = 6) {
   // 제외 목록은 최근 80건으로 상한 — 코퍼스가 커져도 프롬프트(토큰)가 무한정 늘지 않게
   const exclusion = [...new Set([...used, ...poolTitles])].slice(-80).join("\n- ");
 
-  const researchOnly = !!flags().researchOnly;
+  // RESEARCH_ONLY=false(env)면 시장조사 범위 제한을 무시 — 위성 프로필 대량 보강용
+  // (시장조사 신호는 default 니치 기준이라 kkultip/jype 주제와 안 맞을 수 있음)
+  const researchOnly = process.env.RESEARCH_ONLY === "false" ? false : !!flags().researchOnly;
   const scopeBlock = researchOnly ? researchDirective(IS_EN) : "";
   const cats = site.categories.map((c) => `${c.slug}: ${c.name} — ${c.desc}`).join("\n");
   const prompt = IS_EN
