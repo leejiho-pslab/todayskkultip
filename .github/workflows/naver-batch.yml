@@ -73,10 +73,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add content/posts src/assets/covers config/topics content/variants src/assets/naver || true
+          # requests.json 도 포함 — generate 가 처리한 요청을 done 으로 표시한 변경까지 커밋해야
+          # 다음 실행에서 같은 주제가 중복 생성되지 않는다
+          git add content/posts src/assets/covers config/topics config/requests.json content/variants src/assets/naver || true
           if ! git diff --cached --quiet; then
             git commit -m "chore: 네이버 원고 일괄 생성 (${{ github.event.inputs.count || '10' }}편)"
-            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            # autostash: 실행 중 남은 미스테이징 변경이 있어도 리베이스가 막히지 않게
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
             git push
           else
             echo "커밋할 변경 없음"
