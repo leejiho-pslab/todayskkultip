@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import { site } from "../config/site.config.js";
-import { ROOT, POSTS_DIR, loadPosts } from "./lib.mjs";
+import { ROOT, POSTS_DIR, loadPosts, isEntertainment } from "./lib.mjs";
 
 const VARIANTS_DIR = path.join(ROOT, "content", "variants");
 const MODEL = process.env.REWRITE_MODEL || "claude-haiku-4-5-20251001";
@@ -142,7 +142,8 @@ async function main() {
   const jobs = [];
   for (const p of posts.filter((x) => x.channels?.blogger && !x.published?.blogger).slice(0, LIMIT)) jobs.push([p, "blogger"]);
   for (const p of posts.filter((x) => x.channels?.wordpress && !x.published?.wordpress).slice(0, LIMIT)) jobs.push([p, "wordpress"]);
-  if (site.lang !== "en") for (const p of posts.slice(0, NAVER_N)) jobs.push([p, "naver"]);
+  // 연예(ent) 글은 네이버에 발행하지 않으므로 네이버 원고 생성 대상에서도 제외
+  if (site.lang !== "en") for (const p of posts.filter((x) => !isEntertainment(x.category)).slice(0, NAVER_N)) jobs.push([p, "naver"]);
   let made = 0;
   for (const [p, ch] of jobs) {
     if (loadVariant(p.slug, ch)) continue;

@@ -1,0 +1,71 @@
+name: 네이버 원고 일괄 생성 (수동)
+
+# 운영자가 네이버 발행분을 미리 쌓아두고 싶을 때 수동 실행하는 일회성 배치.
+# 최신 N편(연예 제외)의 네이버 전용 고유 원고(재작성)+상품 추천+이미지(n1/n2 카드)를
+# 한 번에 생성해 커밋한다. n0 실사 히어로는 힉스필드 제작본이 이미 커밋돼 있으면 존중됨.
+# 정기 크론의 REWRITE=false(0원 스위치)와 무관 — 이 워크플로는 운영자가 눌렀을 때만 비용 발생.
+
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "네이버 원고를 만들 최신 글 수 (연예 제외)"
+        default: "10"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "naver-batch"
+  cancel-in-progress: false
+
+jobs:
+  batch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Chrome 설치 (카드 이미지 렌더용)
+        id: setupchrome
+        continue-on-error: true
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: 이미지 폰트 준비
+        continue-on-error: true
+        run: npm i --no-save pretendard
+
+      - name: 네이버 고유 원고 재작성 (최신 N편)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REWRITE_NAVER_LIMIT: ${{ github.event.inputs.count || '10' }}
+          # 블로거/워드프레스 임박분은 정기 크론이 담당 — 이 배치는 네이버만
+          PUBLISH_LIMIT: "0"
+        run: node automation/rewrite.mjs
+
+      - name: 네이버 이미지 세트 보장 (외부 실사 존중 + 부족분 카드 렌더)
+        env:
+          CHROME_BIN: ${{ steps.setupchrome.outputs.chrome-path }}
+          REWRITE_NAVER_LIMIT: ${{ github.event.inputs.count || '10' }}
+        run: node automation/naver-images.mjs
+
+      - name: 커밋·푸시 (푸시가 사이트 빌드를 트리거 → 대시보드 갱신)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/variants src/assets/naver || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: 네이버 원고 일괄 생성 (${{ github.event.inputs.count || '10' }}편)"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push
+          else
+            echo "커밋할 변경 없음"
+          fi
