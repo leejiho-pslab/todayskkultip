@@ -11,6 +11,9 @@ on:
       count:
         description: "네이버 원고를 만들 최신 글 수 (연예 제외)"
         default: "10"
+      generate:
+        description: "먼저 새 글을 이만큼 생성 (0=기존 글만, 신규 주제로 사이트·전 채널에도 발행됨)"
+        default: "0"
 
 permissions:
   contents: write
@@ -43,6 +46,15 @@ jobs:
         continue-on-error: true
         run: npm i --no-save pretendard
 
+      - name: 신규 글 생성 (generate 입력 > 0 일 때만 — 운영자 명시 요청 배치)
+        if: ${{ (github.event.inputs.generate || '0') != '0' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CHROME_BIN: ${{ steps.setupchrome.outputs.chrome-path }}
+          # 네이버·사이트 동시 게시용 신규 글은 품질 우선(승인 심사에도 반영됨)
+          CONTENT_MODEL: claude-sonnet-4-6
+        run: node automation/generate.mjs "${{ github.event.inputs.generate }}"
+
       - name: 네이버 고유 원고 재작성 (최신 N편)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -61,7 +73,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add content/variants src/assets/naver || true
+          git add content/posts src/assets/covers config/topics content/variants src/assets/naver || true
           if ! git diff --cached --quiet; then
             git commit -m "chore: 네이버 원고 일괄 생성 (${{ github.event.inputs.count || '10' }}편)"
             git pull --rebase origin "${GITHUB_REF_NAME}" || true
