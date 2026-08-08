@@ -53,6 +53,10 @@ jobs:
           CHROME_BIN: ${{ steps.setupchrome.outputs.chrome-path }}
           # 네이버·사이트 동시 게시용 신규 글은 품질 우선(승인 심사에도 반영됨)
           CONTENT_MODEL: claude-sonnet-4-6
+          # 채널 플래그가 생성 시점 env 로 결정되므로 정규 발행(publish.yml)과 동일하게 제공
+          # (과거 사고: 이 env 누락으로 배치 생성 글이 wordpress:false 로 구워짐)
+          WORDPRESS_URL: ${{ vars.WORDPRESS_URL }}
+          WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
         run: node automation/generate.mjs "${{ github.event.inputs.generate }}"
 
       - name: 네이버 고유 원고 재작성 (최신 N편)
