@@ -1,0 +1,49 @@
+name: 블로거 중복 발행 정리 (수동)
+
+# 발행 플래그 유실 사고(2026-08-03~08)로 블로거에 반복 발행된 중복 글을 정리하는 복구 도구.
+# 같은 원문(슬러그)의 중복 발행본 중 최초본만 남기고 삭제 + published.blogger 플래그 복구 커밋.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true=삭제하지 않고 계획만 출력"
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  dedupe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: 중복 삭제 + 플래그 복구
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: node automation/blogger-dedupe.mjs
+
+      - name: 플래그 커밋·푸시
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/posts || true
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: 블로거 발행 플래그 복구 (중복 정리)"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git push
+          else
+            echo "커밋할 변경 없음"
+          fi
