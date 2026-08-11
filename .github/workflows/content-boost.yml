@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # 커밋 후 sync-sites 디스패치용 (봇 푸시는 push 트리거를 못 깨움)
 
 concurrency:
   group: "content-boost"
@@ -74,14 +75,27 @@ jobs:
           done
 
       - name: 생성 글 커밋·푸시
+        id: commitpush
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add content/posts src/assets/covers config/topics || true
+          for p in content/posts src/assets/covers config/topics; do
+            git add "$p" 2>/dev/null || true
+          done
           if ! git diff --cached --quiet; then
             git commit -m "chore: 위성 콘텐츠 부스트 ($(date -u +%Y-%m-%d))"
-            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
             git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           else
             echo "커밋할 신규 글 없음"
           fi
+
+      # 봇(GITHUB_TOKEN) 푸시는 push 트리거 워크플로를 깨우지 못한다 —
+      # 새 글이 커밋됐으면 위성 레포 동기화를 명시적으로 디스패치 (과거 사고: 8/8~8/10
+      # 부스트 글이 위성 사이트에 전달되지 않음)
+      - name: 위성 동기화 디스패치
+        if: steps.commitpush.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run sync-sites.yml --ref "${GITHUB_REF_NAME}" -R "${GITHUB_REPOSITORY}" || echo "디스패치 실패(다음 push 때 동기화됨)"
