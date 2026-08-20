@@ -1,20 +1,21 @@
 name: 위성 콘텐츠 부스트 (애드센스 승인용)
 
-# kkultip·jype 프로필 글이 목표(기본 30편)에 못 미치면 매일 소량(기본 6편/일)씩
-# 고품질(sonnet)로 생성해 채운다 — "가치가 별로 없는 콘텐츠" 반려의 최우선 원인이
-# 콘텐츠 수 부족(각 8편)이기 때문. 목표 도달 시 자동으로 아무 것도 안 함.
+# kkultip·jype 프로필 글이 목표(기본 45편)에 못 미치면 매일 소량(기본 2편/일)씩
+# 고품질(sonnet)로 생성해 채운다 — "가치가 별로 없는 콘텐츠" 반려 대응.
 # 생성된 글은 push → sync-sites 가 위성 레포로 전달한다.
-# 하루 6편/프로필로 제한: 하루에 수십 편 쏟아지면 자동생성 신호로 오히려 불리.
+# 2026-08-19 변경: 목표 30 도달 후 부스트가 멈추자 사이트가 11일간 정체된 상태로
+# 심사받아 jype 가 반려됨 → 목표 45 + 하루 2편의 "꾸준한 성장" 모드로 전환
+# (심사에는 총량만큼 지속 업데이트 이력이 중요). 하루에 수십 편 쏟아지는 것은 금물.
 
 on:
   workflow_dispatch:
     inputs:
       target:
         description: "프로필당 목표 글 수"
-        default: "30"
+        default: "45"
       per_run:
         description: "이번 실행 프로필당 최대 생성 수"
-        default: "6"
+        default: "2"
   schedule:
     - cron: "30 1 * * *" # 매일 10:30 KST — 목표 도달 시 자동 스킵
 
@@ -58,8 +59,8 @@ jobs:
           CONTENT_MODEL: claude-sonnet-4-6
           # 시장조사 스코프는 default 니치 기준이라 위성 주제와 안 맞음 → 제한 해제
           RESEARCH_ONLY: "false"
-          TARGET: ${{ github.event.inputs.target || '30' }}
-          PER_RUN: ${{ github.event.inputs.per_run || '6' }}
+          TARGET: ${{ github.event.inputs.target || '45' }}
+          PER_RUN: ${{ github.event.inputs.per_run || '2' }}
         shell: bash {0}
         run: |
           for P in kkultip jype; do
