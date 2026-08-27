@@ -5,8 +5,9 @@ name: 시장조사 수집 (네이버 오픈API)
 # NAVER_CLIENT_ID / NAVER_CLIENT_SECRET (Secrets) 가 있을 때만 동작.
 
 on:
-  schedule:
-    - cron: "50 21 * * *" # 매일 06:50 KST
+  # 2026-08-23 프로젝트 홀딩(운영자 지시): 전체 크론 비활성 — 재개 시 아래 주석 해제
+  # schedule:
+  #   - cron: "50 21 * * *" # 매일 06:50 KST
   workflow_dispatch: {}
 
 permissions:
